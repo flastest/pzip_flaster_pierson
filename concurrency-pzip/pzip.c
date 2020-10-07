@@ -4,16 +4,16 @@
  * Wisconsin zip is a file compression tool.
  * The compression used is run-length encoding.
  */
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 pthread_mutex_t write_to_file_lock;
 const int NUM_THREADS = 1;
 
 struct arg_struct {
-     unsigned char *_buffer;
-     size_t _size;
+    unsigned char *_buffer;
+    size_t _size;
 };
 
 FILE *open(const char *filename, const char *modes) {
@@ -40,14 +40,12 @@ size_t fsize(FILE *stream) {
     return ftell(stream);
 }
 
-void write_to_file(void *ptr, FILE *stream)
-{
+void write_to_file(void *ptr, FILE *stream) {
     // writes to a file, locks a mutex so 2 threads don't fuck each other up
     pthread_mutex_lock(&write_to_file_lock);
     fwrite(ptr, 4, 1, stream);
     pthread_mutex_unlock(&write_to_file_lock);
 }
-
 
 void zip(const unsigned char *buffer, size_t size) {
     /**
@@ -63,9 +61,8 @@ void zip(const unsigned char *buffer, size_t size) {
         if (curr == next) {
             count += 1;
         } else {
-
             write_to_file(&count, stdout);
-            //fwrite(&count, 4, 1, stdout);
+            // fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
             printf("%c", curr);
             count = 1;
@@ -73,15 +70,14 @@ void zip(const unsigned char *buffer, size_t size) {
     }
 }
 
-void *zip_thread(void *arguments)
-{
+void *zip_thread(void *arguments) {
     // zips for a single thread. Arguments is a pointer to the arg_struct
     // that contains both the arguments needed for unzip.
 
     struct arg_struct *args = (struct arg_struct *) arguments;
 
-    unsigned char *buffer = args -> _buffer;
-    size_t size = args -> _size;
+    unsigned char *buffer = args->_buffer;
+    size_t size = args->_size;
 
     unsigned char curr;
     unsigned char next;
@@ -92,9 +88,8 @@ void *zip_thread(void *arguments)
         if (curr == next) {
             count += 1;
         } else {
-
             write_to_file(&count, stdout);
-            //fwrite(&count, 4, 1, stdout);
+            // fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
             printf("%c", curr);
             count = 1;
@@ -137,20 +132,17 @@ int main(int argc, char *argv[]) {
     size_t size_of_each_threads_work = size / (size_t) NUM_THREADS;
     pthread_t threads[NUM_THREADS];
 
-    //divvy up the work between all the threads
-    for (int pid = 0; pid < NUM_THREADS; ++pid)
-    {
-        //create a thread, add it to the list of threads
+    // divvy up the work between all the threads
+    for (int pid = 0; pid < NUM_THREADS; ++pid) {
+        // create a thread, add it to the list of threads
         struct arg_struct args;
-        args._buffer = (buffer + (pid *
-          size_of_each_threads_work));
+        args._buffer = (buffer + (pid * size_of_each_threads_work));
         args._size = size_of_each_threads_work;
-        pthread_create(&threads[pid], NULL, zip_thread, (void *)&args);
+        pthread_create(&threads[pid], NULL, zip_thread, (void *) &args);
     }
 
-    //join threads here
-    for (int pid = 0; pid < NUM_THREADS; ++pid)
-    {
+    // join threads here
+    for (int pid = 0; pid < NUM_THREADS; ++pid) {
         pthread_join(threads[pid], NULL);
     }
 
