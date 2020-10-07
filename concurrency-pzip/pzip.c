@@ -11,6 +11,10 @@
 pthread_mutex_t write_to_file_lock;
 const int NUM_THREADS = 1;
 
+struct arg_struct {
+     unsigned char *_buffer;
+     size_t _size;
+};
 
 FILE *open(const char *filename, const char *modes) {
     /**
@@ -69,6 +73,35 @@ void zip(const unsigned char *buffer, size_t size) {
     }
 }
 
+void *zip_thread(void *arguments)
+{
+    // zips for a single thread. Arguments is a pointer to the arg_struct
+    // that contains both the arguments needed for unzip.
+
+    struct arg_struct *args = (struct arg_struct *) arguments;
+
+    unsigned char *buffer = args -> _buffer;
+    size_t size = args -> _size;
+
+    unsigned char curr;
+    unsigned char next;
+    size_t count = 1;
+    for (size_t i = 0; i < size;) {
+        curr = buffer[i];
+        next = buffer[++i];
+        if (curr == next) {
+            count += 1;
+        } else {
+
+            write_to_file(&count, stdout);
+            //fwrite(&count, 4, 1, stdout);
+            // printf("%i", count);
+            printf("%c", curr);
+            count = 1;
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     /**
      * File compression tool
@@ -108,8 +141,11 @@ int main(int argc, char *argv[]) {
     for (int pid = 0; pid < NUM_THREADS; ++pid)
     {
         //create a thread, add it to the list of threads
-        pthread_create(threads[pid], NULL, zip, ((buffer + (pid *
-          size_of_each_threads_work)), size_of_each_threads_work));
+        struct arg_struct args;
+        args._buffer = (buffer + (pid *
+          size_of_each_threads_work));
+        args._size = size_of_each_threads_work;
+        pthread_create(&threads[pid], NULL, zip_thread, (void *)&args);
     }
 
     //join threads here
