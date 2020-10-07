@@ -26,7 +26,7 @@ void zip(FILE *fp) {
 
         if (fwrite(&count, sizeof(count), 1, stdout) < 1) {
             perror("Can't write to stdout");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         printf("%c", last);
         last = curr;
@@ -48,7 +48,7 @@ void zip(FILE *fp) {
 int main(int argc, char **argv) {
     if (argc <= 1) {
         fprintf(stderr, "%s: searchterm file ...\n", argv[0]);
-        exit(1);
+        return EXIT_FAILURE;
     }
 
     for (int i = 1; i < argc; i++) {
