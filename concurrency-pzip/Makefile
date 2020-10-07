@@ -13,10 +13,10 @@ EXE       = wzip
 all: pzip
 
 pzip: pzip.o
-	$(CC) $(CC_FLAGS) -o pzip pzip.o
+	$(CC) $(CC_FLAGS) -o $(EXE) $(SRC).o
 
 valgrind: all
-	valgrind -s --leak-check=full --show-leak-kinds=all ./pzip
+	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE)
 
 %.o: %.c %.h
 	$(CC) $(CC_FLAGS) -c -o $@ $<
