@@ -9,7 +9,7 @@
 #include <pthread.h>
 
 pthread_mutex_t write_to_file_lock;
-const int NUM_THREADS = 2;
+const int NUM_THREADS = 1;
 
 
 FILE *open(const char *filename, const char *modes) {
@@ -59,7 +59,7 @@ void zip(const unsigned char *buffer, size_t size) {
         if (curr == next) {
             count += 1;
         } else {
-            
+
             write_to_file(&count, stdout);
             //fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
@@ -101,16 +101,22 @@ int main(int argc, char *argv[]) {
         fclose(stream);
     }
 
-    size_t size_of_each_threads_work = size / NUM_THREADS;
+    size_t size_of_each_threads_work = size / (size_t) NUM_THREADS;
+    pthread_t threads[NUM_THREADS];
+
     //divvy up the work between all the threads
-    for (int pid = 0; i < NUM_THREADS; i++)
+    for (int pid = 0; pid < NUM_THREADS; ++pid)
     {
-        //create a thread
-        zip(buffer + pid * )
+        //create a thread, add it to the list of threads
+        pthread_create(threads[pid], NULL, zip, ((buffer + (pid *
+          size_of_each_threads_work)), size_of_each_threads_work));
     }
 
-
     //join threads here
+    for (int pid = 0; pid < NUM_THREADS; ++pid)
+    {
+        pthread_join(threads[pid], NULL);
+    }
 
     // Run-length-encode the buffer to stdout
     zip(buffer, size);
