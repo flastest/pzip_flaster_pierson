@@ -27,7 +27,6 @@ modules.order
 Module.symvers
 *.o
 *.obj
-*.out
 *.pch
 *.pdb
 *.slo
@@ -37,5 +36,5 @@ Module.symvers
 *.su
 .tmp_versions/
 *.x86_64
-*.binary
-*.err
+tests-out/
+
