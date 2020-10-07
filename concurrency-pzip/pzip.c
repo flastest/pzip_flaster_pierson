@@ -16,11 +16,13 @@ struct arg_struct {
     size_t _size;
 };
 
+/**
+ * Open a stream for a file.
+ * @param filename specifies path to file
+ * @param modes mode to open file in
+ * @return open new stream for file
+ */
 FILE *open(const char *filename, const char *modes) {
-    /**
-     * File opening function
-     * Returns open stream to file specified by filename
-     */
     FILE *stream = fopen(filename, modes);
 
     if (stream == NULL) {
@@ -31,11 +33,12 @@ FILE *open(const char *filename, const char *modes) {
     return stream;
 }
 
+/**
+ * Calculate the size of a file.
+ * @param stream specify stream for file
+ * @return size of file specified by stream
+ */
 size_t fsize(FILE *stream) {
-    /**
-     * File size function
-     * Returns siz of file specified by stream
-     */
     fseek(stream, 0, SEEK_END);
     return ftell(stream);
 }
@@ -47,11 +50,13 @@ void write_to_file(void *ptr, FILE *stream) {
     pthread_mutex_unlock(&write_to_file_lock);
 }
 
+/**
+ * Zip run-length-encoding procedure.
+ * Prints compressed buffer to stdout.
+ * @param buffer to compress
+ * @param size of buffer
+ */
 void zip(const unsigned char *buffer, size_t size) {
-    /**
-     * Zip run-length-encoding procedure
-     * Prints compressed buffer to stdout
-     */
     unsigned char curr;
     unsigned char next;
     size_t count = 1;
@@ -70,10 +75,13 @@ void zip(const unsigned char *buffer, size_t size) {
     }
 }
 
+/**
+ * zips for a single thread. Arguments is a pointer to the arg_struct
+ * that contains both the arguments needed for unzip.
+ * @param arguments
+ * @return
+ */
 void *zip_thread(void *arguments) {
-    // zips for a single thread. Arguments is a pointer to the arg_struct
-    // that contains both the arguments needed for unzip.
-
     struct arg_struct *args = (struct arg_struct *) arguments;
 
     unsigned char *buffer = args->_buffer;
@@ -95,13 +103,17 @@ void *zip_thread(void *arguments) {
             count = 1;
         }
     }
+    return NULL;
 }
 
+/**
+ * File compression tool.
+ * Compresses all input files to stdout.
+ * @param argc argument count
+ * @param argv arguments
+ * @return EXIT_SUCCESS iff successful
+ */
 int main(int argc, char *argv[]) {
-    /**
-     * File compression tool
-     * Compresses all input files to stdout
-     */
     if (argc < 2) {
         printf("wzip: file1 [file2 ...]\n");
         exit(EXIT_FAILURE);
@@ -148,4 +160,6 @@ int main(int argc, char *argv[]) {
 
     // Run-length-encode the buffer to stdout
     zip(buffer, size);
+
+    return EXIT_SUCCESS;
 }
