@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!usr/bin/env bash
 
 # run_test testdir testnumber
 run_test () {
@@ -205,5 +205,3 @@ while true; do
     run_and_check $testdir $testnum $contrunning $verbose 0
     (( testnum = $testnum + 1 ))
 done
-
-exit 0

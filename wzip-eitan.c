@@ -1,4 +1,4 @@
-/*
+/**
  * A simple run-length encoder in C
  * The resulting file format is <length> (32-bit unsigned binary) followed
  * by a literal (b-bit character), repeated for as long as necessary.
