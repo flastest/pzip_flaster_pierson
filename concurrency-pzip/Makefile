@@ -1,20 +1,57 @@
-CXX = clang
-CXXFLAGS = -g -pthread -O3 -Wall -Wextra -pedantic -Werror
+CC        = gcc
+CC_STD    = -std=c11
+CC_W      = -Wall -Wextra -Wpedantic
+CC_DB     = -ggdb3 -Og -DDEBUG
+CC_FLAGS  = -pthread $(CC_STD) $(CC_W) $(CC_DB)
+CC_SAN    = $(CXX_NOSAN) -fsanitize=address,leak,undefined
 
 .c.o:
-	$(CXX) $(CXXFLAGS) -c -O3 $<
+	$(CC) $(CC_FLAGS) -c -O3 $<
 
 all: pzip
 
 pzip: pzip.o
-	$(CXX) $(CXXFLAGS) -o pzip pzip.o
+	$(CC) $(CC_FLAGS) -o pzip pzip.o
 
 valgrind: all
-	valgrind --leak-check=full --show-leak-kinds=all ./pzip
+	valgrind -s --leak-check=full --show-leak-kinds=all ./pzip
 
 %.o: %.c %.h
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CC) $(CC_FLAGS) -c -o $@ $<
 
 clean:
-	rm -f *.o
-	
+	rm -fv *.o
+
+
+SRC       = pzip.c
+EXE       = wzip
+
+test:
+	$(CC) -o $(EXE) $(SRC).c $(CC_FLAGS)
+	./test-wzip
+
+sanitize:
+	$(CC) -o $(EXE) $(SRC).c $(CC_SAN)
+
+clean:
+	rm -fv $(EXE)
+
+grind:
+	$(CC) -o $(EXE) $(SRC).c $(CC_FLAGS)
+	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE)
+
+tidy:
+	clang-tidy $(SRC).c
+
+tidy-fix:
+	clang-tidy --fix $(SRC).c
+
+format:
+	clang-format -style="{BasedOnStyle: google, IndentWidth: 4}" -i --verbose $(SRC).c
+
+lint:
+	# ignore C++ specific warnings
+	cpplint --filter=-legal/copyright $(SRC).c
+
+warn:
+	clang -Weverything -o $(EXE) $(SRC).c $(CC_FLAGS)
