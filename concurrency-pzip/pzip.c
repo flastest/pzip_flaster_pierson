@@ -79,7 +79,7 @@ void zip(const unsigned char *buffer, size_t size) {
  * zips for a single thread. Arguments is a pointer to the arg_struct
  * that contains both the arguments needed for unzip.
  * @param arguments
- * @return
+ * @return NULL
  */
 void *zip_thread(void *arguments) {
     struct arg_struct *args = (struct arg_struct *) arguments;
