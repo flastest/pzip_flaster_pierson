@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 pthread_mutex_t write_to_file_lock;
-const int NUM_THREADS = 1;
+const int NUM_THREADS = 2;
 
 struct arg_struct {
     unsigned char *_buffer;
