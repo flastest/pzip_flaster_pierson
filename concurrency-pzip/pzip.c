@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
         args._buffer = (buffer + (pid * size_of_each_threads_work));
         args._size = size_of_each_threads_work;
 
-        //simple way to make zip as complressed as possible, check here for
+        //simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
         pthread_create(&threads[pid], NULL, zip_thread, (void *)&args);
     }
