@@ -4,23 +4,25 @@
  * Wisconsin zip is a file compression tool.
  * The compression used is run-length encoding.
  */
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 pthread_mutex_t write_to_file_lock;
 const int NUM_THREADS = 1;
 
 struct arg_struct {
-     unsigned char *_buffer;
-     size_t _size;
+    unsigned char *_buffer;
+    size_t _size;
 };
 
+/**
+ * Open a stream for a file.
+ * @param filename specifies path to file
+ * @param modes mode to open file in
+ * @return open new stream for file
+ */
 FILE *open(const char *filename, const char *modes) {
-    /**
-     * File opening function
-     * Returns open stream to file specified by filename
-     */
     FILE *stream = fopen(filename, modes);
 
     if (stream == NULL) {
@@ -31,29 +33,30 @@ FILE *open(const char *filename, const char *modes) {
     return stream;
 }
 
+/**
+ * Calculate the size of a file.
+ * @param stream specify stream for file
+ * @return size of file specified by stream
+ */
 size_t fsize(FILE *stream) {
-    /**
-     * File size function
-     * Returns siz of file specified by stream
-     */
     fseek(stream, 0, SEEK_END);
     return ftell(stream);
 }
 
-void write_to_file(void *ptr, FILE *stream)
-{
+void write_to_file(void *ptr, FILE *stream) {
     // writes to a file, locks a mutex so 2 threads don't fuck each other up
     pthread_mutex_lock(&write_to_file_lock);
     fwrite(ptr, 4, 1, stream);
     pthread_mutex_unlock(&write_to_file_lock);
 }
 
-
+/**
+ * Zip run-length-encoding procedure.
+ * Prints compressed buffer to stdout.
+ * @param buffer to compress
+ * @param size of buffer
+ */
 void zip(const unsigned char *buffer, size_t size) {
-    /**
-     * Zip run-length-encoding procedure
-     * Prints compressed buffer to stdout
-     */
     unsigned char curr;
     unsigned char next;
     size_t count = 1;
@@ -63,9 +66,8 @@ void zip(const unsigned char *buffer, size_t size) {
         if (curr == next) {
             count += 1;
         } else {
-
             write_to_file(&count, stdout);
-            //fwrite(&count, 4, 1, stdout);
+            // fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
             printf("%c", curr);
             count = 1;
@@ -73,15 +75,17 @@ void zip(const unsigned char *buffer, size_t size) {
     }
 }
 
-void *zip_thread(void *arguments)
-{
-    // zips for a single thread. Arguments is a pointer to the arg_struct
-    // that contains both the arguments needed for unzip.
-
+/**
+ * zips for a single thread. Arguments is a pointer to the arg_struct
+ * that contains both the arguments needed for unzip.
+ * @param arguments
+ * @return NULL
+ */
+void *zip_thread(void *arguments) {
     struct arg_struct *args = (struct arg_struct *) arguments;
 
-    unsigned char *buffer = args -> _buffer;
-    size_t size = args -> _size;
+    unsigned char *buffer = args->_buffer;
+    size_t size = args->_size;
 
     unsigned char curr;
     unsigned char next;
@@ -92,21 +96,24 @@ void *zip_thread(void *arguments)
         if (curr == next) {
             count += 1;
         } else {
-
             write_to_file(&count, stdout);
-            //fwrite(&count, 4, 1, stdout);
+            // fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
             printf("%c", curr);
             count = 1;
         }
     }
+    return NULL;
 }
 
+/**
+ * File compression tool.
+ * Compresses all input files to stdout.
+ * @param argc argument count
+ * @param argv arguments
+ * @return EXIT_SUCCESS iff successful
+ */
 int main(int argc, char *argv[]) {
-    /**
-     * File compression tool
-     * Compresses all input files to stdout
-     */
     if (argc < 2) {
         printf("wzip: file1 [file2 ...]\n");
         exit(EXIT_FAILURE);
@@ -137,13 +144,11 @@ int main(int argc, char *argv[]) {
     size_t size_of_each_threads_work = size / (size_t) NUM_THREADS;
     pthread_t threads[NUM_THREADS];
 
-    //divvy up the work between all the threads
-    for (int pid = 0; pid < NUM_THREADS; ++pid)
-    {
-        //create a thread, add it to the list of threads
+    // divvy up the work between all the threads
+    for (int pid = 0; pid < NUM_THREADS; ++pid) {
+        // create a thread, add it to the list of threads
         struct arg_struct args;
-        args._buffer = (buffer + (pid *
-          size_of_each_threads_work));
+        args._buffer = (buffer + (pid * size_of_each_threads_work));
         args._size = size_of_each_threads_work;
 
         //simple way to make zip as complressed as possible, check here for
@@ -151,12 +156,13 @@ int main(int argc, char *argv[]) {
         pthread_create(&threads[pid], NULL, zip_thread, (void *)&args);
     }
 
-    //join threads here
-    for (int pid = 0; pid < NUM_THREADS; ++pid)
-    {
+    // join threads here
+    for (int pid = 0; pid < NUM_THREADS; ++pid) {
         pthread_join(threads[pid], NULL);
     }
 
     // Run-length-encode the buffer to stdout
     zip(buffer, size);
+
+    return EXIT_SUCCESS;
 }

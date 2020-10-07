@@ -6,6 +6,7 @@ CC_FLAGS  = -pthread $(CC_STD) $(CC_W) $(CC_DB)
 CC_SAN    = $(CXX_NOSAN) -fsanitize=address,leak,undefined
 SRC       = pzip
 EXE       = wzip
+TESTS     = tests/1.in tests/4.in tests/5.in
 
 .c.o:
 	$(CC) $(CC_FLAGS) -c -O3 $<
@@ -30,10 +31,11 @@ test:
 
 sanitize:
 	$(CC) -o $(EXE) $(SRC).c $(CC_SAN)
+	./$(EXE) $(TESTS)
 
 grind:
 	$(CC) -o $(EXE) $(SRC).c $(CC_FLAGS)
-	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE)
+	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE) $(TESTS)
 
 tidy:
 	clang-tidy $(SRC).c
