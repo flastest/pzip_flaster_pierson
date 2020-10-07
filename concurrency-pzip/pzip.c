@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Run-length-encode the buffer to stdout
-    zip(buffer, size);
+    //zip(buffer, size);
 
     return EXIT_SUCCESS;
 }
