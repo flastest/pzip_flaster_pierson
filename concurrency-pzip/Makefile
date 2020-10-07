@@ -26,7 +26,7 @@ clean:
 
 test:
 	$(CC) -o $(EXE) $(SRC).c $(CC_FLAGS)
-	./test-wzip
+	./test-wzip.sh
 
 sanitize:
 	$(CC) -o $(EXE) $(SRC).c $(CC_SAN)
