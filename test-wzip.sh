@@ -1,4 +1,4 @@
-#!usr/bin/env bash
+#!/usr/bin/env bash
 
 if ! [[ -x wzip ]]; then
     echo "wzip executable does not exist"
