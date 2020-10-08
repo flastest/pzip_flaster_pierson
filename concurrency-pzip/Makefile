@@ -1,32 +1,33 @@
 CC        = gcc
 CC_STD    = -std=c11
 CC_W      = -Wall -Wextra -Wpedantic
-CC_DB     = -ggdb3 -Og -DDEBUG
-CC_FLAGS  = -pthread $(CC_STD) $(CC_W) $(CC_DB)
-CC_SAN    = $(CXX_NOSAN) -fsanitize=address,leak,undefined
+CC_GDB    = -ggdb3 -Og
+CC_NODB   = $(CC_STD) $(CC_W) $(CC_GDB) -pthread
+CC_DB     = $(CC_NODB) -DDEBUG
+CC_SAN    = $(CC_DB) -fsanitize=address,leak,undefined
 SRC       = pzip
 EXE       = wzip
 TESTS     = tests/1.in tests/4.in tests/5.in
 
 .c.o:
-	$(CC) $(CC_FLAGS) -c -O3 $<
+	$(CC) $(CC_NODB) -c -O3 $<
 
 all: pzip
 
 pzip: pzip.o
-	$(CC) $(CC_FLAGS) -o $(EXE) $(SRC).o
+	$(CC) $(CC_NODB) -o $(EXE) $(SRC).o
 
 valgrind: all
 	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE)
 
 %.o: %.c %.h
-	$(CC) $(CC_FLAGS) -c -o $@ $<
+	$(CC) $(CC_NODB) -c -o $@ $<
 
 clean:
 	rm -fv *.o $(EXE)
 
 test:
-	$(CC) -o $(EXE) $(SRC).c $(CC_FLAGS)
+	$(CC) -o $(EXE) $(SRC).c $(CC_NODB)
 	./test-wzip.sh
 
 sanitize:
@@ -34,7 +35,7 @@ sanitize:
 	./$(EXE) $(TESTS)
 
 grind:
-	$(CC) -o $(EXE) $(SRC).c $(CC_FLAGS)
+	$(CC) -o $(EXE) $(SRC).c $(CC_DB)
 	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE) $(TESTS)
 
 tidy:
@@ -51,4 +52,4 @@ lint:
 	cpplint --filter=-legal/copyright $(SRC).c
 
 warn:
-	clang -Weverything -o $(EXE) $(SRC).c $(CC_FLAGS)
+	clang -Weverything -o $(EXE) $(SRC).c $(CC_SAN)
