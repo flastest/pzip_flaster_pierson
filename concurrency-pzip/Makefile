@@ -6,7 +6,7 @@ CC_NODB   = $(CC_STD) $(CC_W) $(CC_GDB) -pthread
 CC_DB     = $(CC_NODB) -DDEBUG
 CC_SAN    = $(CC_DB) -fsanitize=address,leak,undefined
 SRC       = pzip
-EXE       = wzip
+EXE    = wzip
 TESTS     = tests/1.in tests/4.in tests/5.in
 
 .c.o:
@@ -36,7 +36,7 @@ sanitize:
 
 grind:
 	$(CC) -o $(EXE) $(SRC).c $(CC_DB)
-	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE) $(TESTS)
+	valgrind -s --track-origins=yes --leak-check=full --show-leak-kinds=all ./$(EXE) $(TESTS)
 
 tidy:
 	clang-tidy $(SRC).c
@@ -49,7 +49,7 @@ format:
 
 lint:
 	# ignore C++ specific warnings
-	cpplint --filter=-legal/copyright $(SRC).c
+	cpplint --filter=-legal/copyright,-readability/todo $(SRC).c
 
 warn:
 	clang -Weverything -o $(EXE) $(SRC).c $(CC_SAN)
