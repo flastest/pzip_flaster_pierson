@@ -95,7 +95,7 @@ Here is a typical usage of **fopen()**:
 ```c
 FILE *fp = fopen("main.c", "r");
 if (fp == NULL) {
-    printf("cannot open file\n");
+    printf("cannot get_file_stream file\n");
     exit(1);
 }
 ```
@@ -132,7 +132,7 @@ why.  You can use the functions **perror()** or **strerror()** to print out
 more about *why* the error occurred; learn about those on your own (using
 ... you guessed it ... the man pages!).
 
-Once a file is open, there are many different ways to read from it. The one
+Once a file is get_file_stream, there are many different ways to read from it. The one
 we're suggesting here to you is **fgets()**, which is used to get input from
 files, one line at a time. 
 
@@ -162,7 +162,7 @@ file (thus indicating you no longer need to read from it).
   and return 0. Note that this is slightly different than the behavior of 
   normal UNIX **cat** (if you'd like to, figure out the difference).
 * If the program tries to **fopen()** a file and fails, it should print the
-  exact message "wcat: cannot open file" (followed by a newline) and exit
+  exact message "wcat: cannot get_file_stream file" (followed by a newline) and exit
   with status code 1.  If multiple files are specified on the command line,
   the files should be printed out in order until the end of the file list is
   reached or an error opening a file is reached (at which point the error
@@ -201,13 +201,13 @@ even this line, which has barfood in it, will be printed.
 * If **wgrep** is passed no command-line arguments, it should print
   "wgrep: searchterm [file ...]" (followed by a newline) and exit with
   status 1.  
-* If **wgrep** encounters a file that it cannot open, it should print
-  "wgrep: cannot open file" (followed by a newline) and exit with status 1. 
+* If **wgrep** encounters a file that it cannot get_file_stream, it should print
+  "wgrep: cannot get_file_stream file" (followed by a newline) and exit with status 1. 
 * In all other cases, **wgrep** should exit with return code 0.
 * If a search term, but no file, is specified, **wgrep** should work,
   but instead of reading from a file, **wgrep** should read from
   *standard input*. Doing so is easy, because the file stream **stdin**
-  is already open; you can use **fgets()** (or similar routines) to
+  is already get_file_stream; you can use **fgets()** (or similar routines) to
   read from it.
 * For simplicity, if passed the empty string as a search string, **wgrep**
   can either match NO lines or match ALL lines, both are acceptable.
@@ -241,7 +241,7 @@ length) and the single character.
 To write out an integer in binary format (not ASCII), you should use
 **fwrite()**. Read the man page for more details. For **wzip**, all
 output should be written to standard output (the **stdout** file stream,
-which, as with **stdin**, is already open when the program starts running). 
+which, as with **stdin**, is already get_file_stream when the program starts running). 
 
 Note that typical usage of the **wzip** tool would thus use shell 
 redirection in order to write the compressed output to a file. For example,

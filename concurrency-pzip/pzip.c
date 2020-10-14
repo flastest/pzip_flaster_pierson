@@ -19,14 +19,14 @@ struct arg_struct {
 /**
  * Open a stream for a file.
  * @param filename specifies path to file
- * @param modes mode to open file in
- * @return open new stream for file
+ * @param modes mode to get_file_stream file in
+ * @return get_file_stream new stream for file
  */
-FILE *open(const char *filename, const char *modes) {
+FILE *open_file(const char *filename, const char *modes) {
     FILE *stream = fopen(filename, modes);
 
     if (stream == NULL) {
-        printf("wzip: cannot open file\n");
+        printf("wzip: cannot get_file_stream file\n");
         exit(EXIT_FAILURE);
     }
 
@@ -38,9 +38,9 @@ FILE *open(const char *filename, const char *modes) {
  * @param stream specify stream for file
  * @return size of file specified by stream
  */
-size_t fsize(FILE *stream) {
+size_t get_stream_size(FILE *stream) {
     fseek(stream, 0, SEEK_END);
-    return ftell(stream);
+    return (size_t) ftell(stream);
 }
 
 void write_to_file(void *ptr, FILE *stream) {
@@ -78,7 +78,7 @@ void zip(const unsigned char *buffer, size_t size) {
 /**
  * zips for a single thread. Arguments is a pointer to the arg_struct
  * that contains both the arguments needed for unzip.
- * @param arguments
+ * @param arguments struct: buffer and size
  * @return NULL
  */
 void *zip_thread(void *arguments) {
@@ -86,6 +86,10 @@ void *zip_thread(void *arguments) {
 
     unsigned char *buffer = args->_buffer;
     size_t size = args->_size;
+
+#ifdef DEBUG
+    fprintf(stderr, "buffer: %hhn, size: %lu\n", buffer, size);
+#endif
 
     unsigned char curr;
     unsigned char next;
@@ -122,8 +126,8 @@ int main(int argc, char *argv[]) {
     size_t size = 0;
     for (int i = 1; i < argc; ++i) {
         // For each file get size
-        FILE *stream = open(argv[i], "r");
-        size += fsize(stream);
+        FILE *stream = open_file(argv[i], "r");
+        size += get_stream_size(stream);
         fclose(stream);
     }
 
@@ -133,7 +137,7 @@ int main(int argc, char *argv[]) {
     size_t n = 0;
     for (int i = 1; i < argc; ++i) {
         // Read all the files into the buffer
-        FILE *stream = open(argv[i], "r");
+        FILE *stream = open_file(argv[i], "r");
         for (int c = fgetc(stream); c > EOF; c = fgetc(stream)) {
             buffer[n] = c;
             ++n;
@@ -144,16 +148,38 @@ int main(int argc, char *argv[]) {
     size_t size_of_each_threads_work = size / (size_t) NUM_THREADS;
     pthread_t threads[NUM_THREADS];
 
+    //plz be a deep copy
+    unsigned char *buffer_ptr = buffer;
+
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
         // create a thread, add it to the list of threads
+
+
+        // [aaaaa|aabbb]
+        //         ^
+        //         buffer_ptr
+        // [aaaaaaa|bbb]
+        //          ^
+
+
+        // if the thread is the first or last, we don't check it
+        if (buffer_ptr != buffer && pid != NUM_THREADS - 1) {
+            // check if the letters are the same
+            //
+        }
+
+
         struct arg_struct args;
-        args._buffer = (buffer + (pid * size_of_each_threads_work));
+        args._buffer = buffer_ptr;
         args._size = size_of_each_threads_work;
 
         // simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
         pthread_create(&threads[pid], NULL, zip_thread, (void *) &args);
+
+        buffer_ptr = buffer_ptr + (pid * size_of_each_threads_work);
+
     }
 
     // join threads here
