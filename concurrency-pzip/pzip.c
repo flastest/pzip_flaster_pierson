@@ -43,6 +43,10 @@ size_t get_stream_size(FILE *stream) {
     return (size_t) ftell(stream);
 }
 
+// writes whatever void *ptr points to to the stream.
+// this shoul dbe used at the end when all the threads 
+// are done doing the stuff and they want to write to 
+// the output thingy
 void write_to_file(void *ptr, FILE *stream) {
     // writes to a file, locks a mutex so 2 threads don't fuck each other up
     pthread_mutex_lock(&write_to_file_lock);
@@ -110,6 +114,11 @@ void *zip_thread(void *arguments) {
     return NULL;
 }
 
+void *do_nothinggg(){
+    int i = 0;
+    return NULL;
+}
+
 /**
  * File compression tool.
  * Compresses all input files to stdout.
@@ -153,32 +162,44 @@ int main(int argc, char *argv[]) {
 
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
-        // create a thread, add it to the list of threads
+        // this keeps track of the size of this buffer
+        size_t this_buffer_size = size_of_each_threads_work;
 
-
-        // [aaaaa|aabbb]
-        //         ^
-        //         buffer_ptr
-        // [aaaaaaa|bbb]
-        //          ^
-
-
-        // if the thread is the first or last, we don't check it
-        if (buffer_ptr != buffer && pid != NUM_THREADS - 1) {
-            // check if the letters are the same
-            //
+        //if there;s nothign for this thread to do, have it do nothing
+        if(buffer_ptr >= buffer + size){
+            pthread_create(&threads[pid],NULL, do_nothinggg, NULL);
         }
 
+        // here we check to see if we need to change the size of 
+        // the threads work. if multiple of the same letter are
+        // spread across multiple thread's works, we just take all
+        // of the same letter and give it to a thread.
+        // if the thread is the first or last, we don't check it
+        while (buffer_ptr != buffer && pid != NUM_THREADS - 1) {
+            // check if the letters are the same
+            //
+            if ( buffer_ptr[this_buffer_size] == buffer_ptr[this_buffer_size+1]) {
+                this_buffer_size++;
+            }
+
+
+            //if it just so happens that the remainder of the buffer is
+            // all the same number, we need to do something i think
+            if ((buffer_ptr + this_buffer_size) == (buffer + size)) 
+            {
+                break;
+            }
+        }
 
         struct arg_struct args;
         args._buffer = buffer_ptr;
-        args._size = size_of_each_threads_work;
+        args._size = this_buffer_size;
 
         // simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
         pthread_create(&threads[pid], NULL, zip_thread, (void *) &args);
 
-        buffer_ptr = buffer_ptr + (pid * size_of_each_threads_work);
+        buffer_ptr = buffer_ptr + this_buffer_size;
 
     }
 
