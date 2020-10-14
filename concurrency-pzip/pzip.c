@@ -11,7 +11,7 @@
 #include <unistd.h>     //for sleep
 
 pthread_mutex_t write_to_file_lock;
-const int NUM_THREADS = 2;
+const int NUM_THREADS = 4;
 
 struct arg_struct {
     unsigned char *_buffer;
