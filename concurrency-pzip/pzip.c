@@ -163,6 +163,8 @@ int main(int argc, char *argv[]) {
     //plz be a deep copy
     unsigned char *buffer_ptr = buffer;
 
+    struct arg_struct args[NUM_THREADS];
+
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
@@ -194,16 +196,20 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        struct arg_struct args;
+        //struct arg_struct args;
         //make sure that the following is a deep copy, not shallow
-        args._buffer = buffer_ptr;
-        args._size = this_buffer_size;
+        struct arg_struct arggies;
+
+        arggies._buffer = buffer_ptr;
+        arggies._size = this_buffer_size;
+
+        args[pid] = arggies;
 
         // simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
-        pthread_create(&threads[pid], NULL, zip_thread, (void *) &args);
+        pthread_create(&threads[pid], NULL, zip_thread, (void *) &args[pid]);
 
-        sleep(1);
+        //sleep(1);
         buffer_ptr = buffer_ptr + this_buffer_size;
 
     }
