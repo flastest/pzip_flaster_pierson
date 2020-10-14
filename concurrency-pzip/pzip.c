@@ -4,9 +4,11 @@
  * Wisconsin zip is a file compression tool.
  * The compression used is run-length encoding.
  */
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <pthread.h>    //for pthreads and mutex
+#include <stdio.h>      //for io
+#include <stdlib.h>     //idk what this is for
+
+#include <unistd.h>     //for sleep
 
 pthread_mutex_t write_to_file_lock;
 const int NUM_THREADS = 2;
@@ -49,9 +51,9 @@ size_t get_stream_size(FILE *stream) {
 // the output thingy
 void write_to_file(void *ptr, FILE *stream) {
     // writes to a file, locks a mutex so 2 threads don't fuck each other up
-    pthread_mutex_lock(&write_to_file_lock);
+    //pthread_mutex_lock(&write_to_file_lock);
     fwrite(ptr, 4, 1, stream);
-    pthread_mutex_unlock(&write_to_file_lock);
+    //pthread_mutex_unlock(&write_to_file_lock);
 }
 
 /**
@@ -104,10 +106,12 @@ void *zip_thread(void *arguments) {
         if (curr == next) {
             count += 1;
         } else {
+            pthread_mutex_lock(&write_to_file_lock);
             write_to_file(&count, stdout);
             // fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
             printf("%c", curr);
+            pthread_mutex_unlock(&write_to_file_lock);
             count = 1;
         }
     }
@@ -115,7 +119,6 @@ void *zip_thread(void *arguments) {
 }
 
 void *do_nothinggg(){
-    int i = 0;
     return NULL;
 }
 
@@ -184,7 +187,7 @@ int main(int argc, char *argv[]) {
 
 
             //if it just so happens that the remainder of the buffer is
-            // all the same number, we need to do something i think
+            // all the same number, don't keep trying to look at things
             if ((buffer_ptr + this_buffer_size) == (buffer + size)) 
             {
                 break;
@@ -192,6 +195,7 @@ int main(int argc, char *argv[]) {
         }
 
         struct arg_struct args;
+        //make sure that the following is a deep copy, not shallow
         args._buffer = buffer_ptr;
         args._size = this_buffer_size;
 
@@ -199,6 +203,7 @@ int main(int argc, char *argv[]) {
         // first/last thing in threads buffers being the same.
         pthread_create(&threads[pid], NULL, zip_thread, (void *) &args);
 
+        sleep(1);
         buffer_ptr = buffer_ptr + this_buffer_size;
 
     }
