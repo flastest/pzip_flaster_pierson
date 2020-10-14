@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         FILE *in = fopen(argv[i], "r");
         if (in == NULL) {
-            perror("wunzip: cannot open file");
+            perror("wunzip: cannot get_file_stream file");
             exit(EXIT_FAILURE);
         }
         zip(in);

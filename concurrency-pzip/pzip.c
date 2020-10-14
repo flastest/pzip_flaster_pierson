@@ -19,14 +19,14 @@ struct arg_struct {
 /**
  * Open a stream for a file.
  * @param filename specifies path to file
- * @param modes mode to open file in
- * @return open new stream for file
+ * @param modes mode to get_file_stream file in
+ * @return get_file_stream new stream for file
  */
-FILE *open(const char *filename, const char *modes) {
+FILE *open_file(const char *filename, const char *modes) {
     FILE *stream = fopen(filename, modes);
 
     if (stream == NULL) {
-        printf("wzip: cannot open file\n");
+        printf("wzip: cannot get_file_stream file\n");
         exit(EXIT_FAILURE);
     }
 
@@ -38,7 +38,7 @@ FILE *open(const char *filename, const char *modes) {
  * @param stream specify stream for file
  * @return size of file specified by stream
  */
-size_t fsize(FILE *stream) {
+size_t get_stream_size(FILE *stream) {
     fseek(stream, 0, SEEK_END);
     return (size_t) ftell(stream);
 }
@@ -126,8 +126,8 @@ int main(int argc, char *argv[]) {
     size_t size = 0;
     for (int i = 1; i < argc; ++i) {
         // For each file get size
-        FILE *stream = open(argv[i], "r");
-        size += fsize(stream);
+        FILE *stream = open_file(argv[i], "r");
+        size += get_stream_size(stream);
         fclose(stream);
     }
 
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     size_t n = 0;
     for (int i = 1; i < argc; ++i) {
         // Read all the files into the buffer
-        FILE *stream = open(argv[i], "r");
+        FILE *stream = open_file(argv[i], "r");
         for (int c = fgetc(stream); c > EOF; c = fgetc(stream)) {
             buffer[n] = c;
             ++n;
