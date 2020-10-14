@@ -6,7 +6,7 @@ CC_NODB   = $(CC_STD) $(CC_W) $(CC_GDB) -pthread
 CC_DB     = $(CC_NODB) -DDEBUG
 CC_SAN    = $(CC_DB) -fsanitize=address,leak,undefined
 SRC       = pzip
-EXE    = wzip
+EXE       = wzip
 TESTS     = tests/1.in tests/4.in tests/5.in
 
 .c.o:
