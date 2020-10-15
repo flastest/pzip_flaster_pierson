@@ -68,6 +68,7 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
 
             // TODO: change this stuff to modify vectors
             // instead of just printing them
+            // to_string: Segmentation fault
             array_of_strings[pid]->append(std::to_string(count));
             array_of_strings[pid]->append(reinterpret_cast<const char *>(curr));
             // idk how to add two strings here
