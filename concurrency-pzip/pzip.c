@@ -23,7 +23,7 @@ struct arg_struct {
  * @param modes mode to get_file_stream file in
  * @return get_file_stream new stream for file
  */
-FILE *open_file(const char *filename, const char *modes) {
+static FILE *open_file(const char *filename, const char *modes) {
     FILE *stream = fopen(filename, modes);
 
     if (stream == NULL) {
@@ -39,7 +39,7 @@ FILE *open_file(const char *filename, const char *modes) {
  * @param stream specify stream for file
  * @return size of file specified by stream
  */
-size_t get_stream_size(FILE *stream) {
+static size_t get_stream_size(FILE *stream) {
     fseek(stream, 0, SEEK_END);
     return (size_t) ftell(stream);
 }
@@ -48,7 +48,7 @@ size_t get_stream_size(FILE *stream) {
 // this should dbe used at the end when all the threads
 // are done doing the stuff and they want to write to
 // the output thingy
-void write_to_file(void *ptr, FILE *stream) {
+static void write_to_file(void *ptr, FILE *stream) {
     // writes to a file, locks a mutex so 2 threads don't fuck each other up
     // pthread_mutex_lock(&write_to_file_lock);
     fwrite(ptr, 4, 1, stream);
@@ -61,7 +61,7 @@ void write_to_file(void *ptr, FILE *stream) {
  * @param buffer to compress
  * @param size of buffer
  */
-void zip(const unsigned char *buffer, size_t size) {
+static void zip(const unsigned char *buffer, size_t size) {
     unsigned char curr;
     unsigned char next;
     size_t count = 1;
@@ -86,7 +86,7 @@ void zip(const unsigned char *buffer, size_t size) {
  * @param arguments struct: buffer and size
  * @return NULL
  */
-void *zip_thread(void *arguments) {
+static void *zip_thread(void *arguments) {
     struct arg_struct *args = (struct arg_struct *) arguments;
 
     unsigned char *buffer = args->_buffer;
@@ -117,7 +117,7 @@ void *zip_thread(void *arguments) {
     return NULL;
 }
 
-void *do_nothing() { return NULL; }
+static void *do_nothing() { return NULL; }
 
 /**
  * File compression tool.
