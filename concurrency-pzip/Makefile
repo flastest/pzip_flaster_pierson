@@ -1,55 +1,56 @@
-CC        = gcc
-CC_STD    = -std=c11
-CC_W      = -Wall -Wextra -Wpedantic
-CC_GDB    = -ggdb3 -Og
-CC_NODB   = $(CC_STD) $(CC_W) $(CC_GDB) -pthread
-CC_DB     = $(CC_NODB) -DDEBUG
-CC_SAN    = $(CC_DB) -fsanitize=address,leak,undefined
+CXX       = g++
+CXX_STD   = -std=c++17
+CXX_W     = -Wall -Wextra -Wpedantic
+CXX_GDB   = -ggdb3 -Og
+# install libasan liblsan libubsan
+CXX_SAN   = -fsanitize=address,leak,undefined
+CXX_NODB  = $(CXX_STD) $(CXX_W) $(CXX_GDB) -pthread
+CXX_DB    = $(CXX_NODB) -DDEBUG
+CXX_SAN   = $(CXX_DB)  $(CXX_SAN)
 SRC       = pzip
 EXE       = wzip
 TESTS     = tests/1.in tests/4.in tests/5.in
 
 .c.o:
-	$(CC) $(CC_NODB) -c -O3 $<
+	$(CXX) $(CXX_NODB) -c -O3 $<
 
 all: pzip
 
 pzip: pzip.o
-	$(CC) $(CC_NODB) -o $(EXE) $(SRC).o
+	$(CXX) $(CXX_NODB) -o $(EXE) $(SRC).o
 
 valgrind: all
 	valgrind -s --leak-check=full --show-leak-kinds=all ./$(EXE)
 
 %.o: %.c %.h
-	$(CC) $(CC_NODB) -c -o $@ $<
+	$(CXX) $(CXX_NODB) -c -o $@ $<
 
 clean:
 	rm -fv *.o $(EXE)
 
 test:
-	$(CC) -o $(EXE) $(SRC).c $(CC_NODB)
+	$(CXX) -o $(EXE) $(SRC).cc $(CXX_NODB)
 	./test-wzip.sh
 
 sanitize:
-	$(CC) -o $(EXE) $(SRC).c $(CC_SAN)
+	$(CXX) -o $(EXE) $(SRC).cc $(CXX_SAN)
 	./$(EXE) $(TESTS)
 
 grind:
-	$(CC) -o $(EXE) $(SRC).c $(CC_DB)
+	$(CXX) -o $(EXE) $(SRC).cc $(CXX_DB)
 	valgrind -s --track-origins=yes --leak-check=full --show-leak-kinds=all ./$(EXE) $(TESTS)
 
 tidy:
-	clang-tidy $(SRC).c
+	clang-tidy $(SRC).cc
 
 tidy-fix:
-	clang-tidy --fix $(SRC).c
+	clang-tidy --fix $(SRC).cc
 
 format:
-	clang-format -style="{BasedOnStyle: google, IndentWidth: 4}" -i --verbose $(SRC).c
+	clang-format -style="{BasedOnStyle: google, IndentWidth: 4}" -i --verbose $(SRC).cc
 
 lint:
-	# ignore C++ specific warnings
-	cpplint --filter=-legal/copyright,-readability/todo $(SRC).c
+	cpplint --filter=-legal/copyright,-readability/todo $(SRC).cc
 
 warn:
-	clang -Weverything -o $(EXE) $(SRC).c $(CC_SAN)
+	clang++ -Weverything -Wno-c++98-compat -Wno-padded -o $(EXE) $(SRC).cc $(CXX_SAN)

@@ -8,10 +8,13 @@
 #include <stdio.h>    // for io
 #include <stdlib.h>   // idk what this is for
 #include <unistd.h>   // for sleep
+#include <vector>     // for something, can't put my finger on it tho
+
 
 #define NUM_THREADS 2
 
 static pthread_mutex_t write_to_file_lock;
+static vector<char *> array_of_strings;
 
 struct arg_struct {
     unsigned char *_buffer;
@@ -85,7 +88,7 @@ static void *zip_thread(void *arguments) {
             write_to_file(&count, stdout);
             // fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
-            printf("%c", curr);
+            fprintf("%c", curr);
             pthread_mutex_unlock(&write_to_file_lock);
             count = 1;
         }
@@ -94,6 +97,29 @@ static void *zip_thread(void *arguments) {
 }
 
 static void *do_nothing() { return NULL; }
+
+// iterates through a char* and merges things like 4a5a to become something
+// nice like 9a
+void merge(char *buffer, size_t size) {
+
+
+    char *new_buffer = (unsigned char *) malloc(size);
+
+    char number = buffer[0];
+    char prev = buffer[1];
+    char *buf_ptr = buffer;
+    while (buf_ptr <= buffer + size) {
+        if ()
+    }
+
+    // if the first thing==second thing {
+    //     // do easy thing
+    // } else {
+    //     // hard thing
+    // }
+
+    printf("%s", new_buffer);
+}
 
 /**
  * File compression tool.
@@ -118,6 +144,9 @@ int main(int argc, char *argv[]) {
 
     // Make a buffer of the sum-size
     unsigned char *buffer = (unsigned char *) malloc(size);
+
+    // Our final result is also malloced here
+    zipped_buffer = (unsigned char *) malloc(5 * size);
 
     size_t n = 0;
     for (int i = 1; i < argc; ++i) {
