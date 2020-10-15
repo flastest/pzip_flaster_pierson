@@ -67,9 +67,9 @@ static void *zip_thread(void *arguments) {
     unsigned char *buffer = args->_buffer;
     size_t size = args->_size;
 
-#ifdef DEBUG
-    fprintf(stderr, "buffer: %s, size: %lu\n", buffer, size);
-#endif
+    // #ifdef DEBUG
+    //     fprintf(stderr, "buffer: %s, size: %lu\n", buffer, size);
+    // #endif
 
     unsigned char curr;
     unsigned char next;
@@ -192,6 +192,8 @@ int main(int argc, char *argv[]) {
 
     // Run-length-encode the buffer to stdout
     // zip(buffer, size);
+
+    free(buffer);
 
     return EXIT_SUCCESS;
 }
