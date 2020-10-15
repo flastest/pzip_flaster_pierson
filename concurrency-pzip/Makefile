@@ -6,7 +6,7 @@ CXX_GDB   = -ggdb3 -Og
 CXX_SAN   = -fsanitize=address,leak,undefined
 CXX_NODB  = $(CXX_STD) $(CXX_W) $(CXX_GDB) -pthread
 CXX_DB    = $(CXX_NODB) -DDEBUG
-CXX_SAN   = $(CXX_DB)  $(CXX_SAN)
+CXX_SAN   = $(CXX_DB)  $(CXX_DB)
 SRC       = pzip
 EXE       = wzip
 TESTS     = tests/1.in tests/4.in tests/5.in
