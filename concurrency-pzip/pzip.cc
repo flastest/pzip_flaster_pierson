@@ -7,14 +7,12 @@
 #include <cstdio>    // for io
 #include <cstdlib>   // atoi and other stuff
 #include <iostream>  // also for io
-#include <mutex>     // mutex
 #include <string>    // for string
 #include <thread>    // for peethreads
 #include <vector>    // for something, can't put my finger on it tho
 
 #define NUM_THREADS 2
 
-std::mutex write_to_file_lock;
 static std::string *array_of_strings[NUM_THREADS];  // i think this is correct
 
 /**
@@ -41,13 +39,14 @@ static FILE *open_file(const char *filename, const char *modes) {
  */
 static size_t get_stream_size(FILE *stream) {
     fseek(stream, 0, SEEK_END);
-    return (size_t) ftell(stream);
+    return static_cast<size_t>(ftell(stream));
 }
 
 /**
  * zips for a single thread. Arguments is a pointer to the arg_struct
  * that contains both the arguments needed for unzip.
- * @param arguments struct: buffer and size
+ * @param buffer string
+ * @param size size of buffer
  * @return NULL
  */
 static void *zip_thread(const unsigned char *buffer, size_t size,
@@ -66,7 +65,6 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
             count += 1;
         } else {
             // we probably don't need this, right?
-            // std::lock_guard<std::mutex> guard(write_to_file_lock);
 
             // TODO: change this stuff to modify vectors
             // instead of just printing them
@@ -103,8 +101,7 @@ static std::string merge() {
         // if the things are equal, add
         if (prev_char == beg_of_str_char) {
             prev_num =
-                    std::to_string(std::stoi(prev_num)
-                    + std::stoi(beg_of_str_num));
+                    std::to_string(std::stoi(prev_num) + std::stoi(beg_of_str_num));
             ret.append(prev_num);
             ret.append(prev_char);
             ret.append(cur_str.substr(2, len - 3));
@@ -114,8 +111,8 @@ static std::string merge() {
             ret.append(cur_str.substr(0, len - 3));
         }
 
-        auto prev_num = array_of_strings[i]->substr(len - 3, len - 2);
-        auto prev_char = array_of_strings[i]->substr(len - 2, len - 1);
+        prev_num = array_of_strings[i]->substr(len - 3, len - 2);
+        prev_char = array_of_strings[i]->substr(len - 2, len - 1);
     }
 
     return ret;
@@ -143,20 +140,20 @@ int main(int argc, char *argv[]) {
     }
 
     // Make a buffer of the sum-size
-    auto *buffer = (unsigned char *) malloc(size);
+    auto *buffer = static_cast<unsigned char *>(malloc(size));
 
     size_t n = 0;
     for (int i = 1; i < argc; ++i) {
         // Read all the files into the buffer
         FILE *stream = open_file(argv[i], "r");
         for (int c = fgetc(stream); c > EOF; c = fgetc(stream)) {
-            buffer[n] = (unsigned char) c;
+            buffer[n] = static_cast<unsigned char>(c);
             ++n;
         }
         fclose(stream);
     }
 
-    size_t size_of_each_threads_work = size / (size_t) NUM_THREADS;
+    size_t size_of_each_threads_work = size / static_cast<size_t>(NUM_THREADS);
     // pthread_t threads[NUM_THREADS];
     std::vector<std::thread> threads;
 
@@ -190,8 +187,10 @@ int main(int argc, char *argv[]) {
 
         // simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
-        threads.emplace_back(std::thread(
-                [=]() { zip_thread(buffer_ptr, this_buffer_size, pid); }));
+        threads.emplace_back(std::thread([=]() {
+            zip_thread(buffer_ptr, this_buffer_size,
+                       static_cast<unsigned int>(pid));
+        }));
 
         buffer_ptr = buffer_ptr + this_buffer_size;
     }
