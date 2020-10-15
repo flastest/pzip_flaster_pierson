@@ -9,8 +9,9 @@
 #include <stdlib.h>   // idk what this is for
 #include <unistd.h>   // for sleep
 
+#define NUM_THREADS 2
+
 static pthread_mutex_t write_to_file_lock;
-static const int NUM_THREADS = 2;
 
 struct arg_struct {
     unsigned char *_buffer;
