@@ -68,7 +68,7 @@ static void *zip_thread(void *arguments) {
     size_t size = args->_size;
 
 #ifdef DEBUG
-    fprintf(stderr, "buffer: %hhn, size: %lu\n", buffer, size);
+    fprintf(stderr, "buffer: %s, size: %lu\n", buffer, size);
 #endif
 
     unsigned char curr;
