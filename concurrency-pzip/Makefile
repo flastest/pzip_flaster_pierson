@@ -4,7 +4,7 @@ CXX_W     = -Wall -Wextra -Wpedantic
 CXX_GDB   = -ggdb3 -Og
 # install libasan liblsan libubsan
 CXX_SAN   = -fsanitize=address,leak,undefined
-CXX_NODB  = $(CXX_STD) $(CXX_W) $(CXX_GDB) -pthread
+CXX_NODB  = $(CXX_STD) $(CXX_W) $(CXX_GDB) -lpthread
 CXX_DB    = $(CXX_NODB) -DDEBUG
 CXX_SAN   = $(CXX_DB)  $(CXX_DB)
 SRC       = pzip
