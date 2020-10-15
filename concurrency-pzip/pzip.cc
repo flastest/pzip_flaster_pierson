@@ -1,25 +1,21 @@
 /**
- * wzip
- * Created by Talib Pierson on 9/1/20.
- * Wisconsin zip is a file compression tool.
+ * pzip
+ * Created by fools on 14 de Octubre.
+ * Pissconsin zip is a file compression tool.
  * The compression used is run-length encoding.
  */
-#include <pthread.h>  // for pthreads and mutex
-#include <stdio.h>    // for io
-#include <stdlib.h>   // idk what this is for
-#include <unistd.h>   // for sleep
-#include <vector>     // for something, can't put my finger on it tho
-
+#include <cstdio>    // for io
+#include <cstdlib>   // atoi and other stuff
+#include <iostream>  // also for io
+#include <mutex>     // mutex
+#include <string>    // for string
+#include <thread>    // for peethreads
+#include <vector>    // for something, can't put my finger on it tho
 
 #define NUM_THREADS 2
 
-static pthread_mutex_t write_to_file_lock;
-static vector<char *> array_of_strings;
-
-struct arg_struct {
-    unsigned char *_buffer;
-    size_t _size;
-};
+std::mutex write_to_file_lock;
+static std::string *array_of_strings[NUM_THREADS];  // i think this is correct
 
 /**
  * Open a stream for a file.
@@ -30,7 +26,7 @@ struct arg_struct {
 static FILE *open_file(const char *filename, const char *modes) {
     FILE *stream = fopen(filename, modes);
 
-    if (stream == NULL) {
+    if (stream == nullptr) {
         printf("wzip: cannot get_file_stream file\n");
         exit(EXIT_FAILURE);
     }
@@ -48,29 +44,14 @@ static size_t get_stream_size(FILE *stream) {
     return (size_t) ftell(stream);
 }
 
-// writes whatever void *ptr points to to the stream.
-// this should dbe used at the end when all the threads
-// are done doing the stuff and they want to write to
-// the output thingy
-static void write_to_file(void *ptr, FILE *stream) {
-    // writes to a file, locks a mutex so 2 threads don't fuck each other up
-    // pthread_mutex_lock(&write_to_file_lock);
-    fwrite(ptr, 4, 1, stream);
-    // pthread_mutex_unlock(&write_to_file_lock);
-}
-
 /**
  * zips for a single thread. Arguments is a pointer to the arg_struct
  * that contains both the arguments needed for unzip.
  * @param arguments struct: buffer and size
  * @return NULL
  */
-static void *zip_thread(void *arguments) {
-    struct arg_struct *args = (struct arg_struct *) arguments;
-
-    unsigned char *buffer = args->_buffer;
-    size_t size = args->_size;
-
+static void *zip_thread(const unsigned char *buffer, size_t size,
+                        unsigned int pid) {
     // #ifdef DEBUG
     //     fprintf(stderr, "buffer: %s, size: %lu\n", buffer, size);
     // #endif
@@ -84,41 +65,60 @@ static void *zip_thread(void *arguments) {
         if (curr == next) {
             count += 1;
         } else {
-            pthread_mutex_lock(&write_to_file_lock);
-            write_to_file(&count, stdout);
+            // we probably don't need this, right?
+            // std::lock_guard<std::mutex> guard(write_to_file_lock);
+
+            // TODO: change this stuff to modify vectors
+            // instead of just printing them
+            array_of_strings[pid]->append(std::to_string(count));
+            array_of_strings[pid]->append(reinterpret_cast<const char *>(curr));
+            // idk how to add two strings here
             // fwrite(&count, 4, 1, stdout);
             // printf("%i", count);
-            fprintf("%c", curr);
-            pthread_mutex_unlock(&write_to_file_lock);
             count = 1;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
-static void *do_nothing() { return NULL; }
-
 // iterates through a char* and merges things like 4a5a to become something
-// nice like 9a
-void merge(char *buffer, size_t size) {
+// nice like 9a.
+static std::string merge() {
+    std::string ret;  // sorry eitan I'm being lazy
 
+    auto prev_num = array_of_strings[0]->substr(0, 1);
+    auto prev_char = array_of_strings[0]->substr(1, 2);
 
-    char *new_buffer = (unsigned char *) malloc(size);
+    auto len = array_of_strings[0]->length();
+    auto cur_str = array_of_strings[0]->substr(0, len - 1);
 
-    char number = buffer[0];
-    char prev = buffer[1];
-    char *buf_ptr = buffer;
-    while (buf_ptr <= buffer + size) {
-        if ()
+    for (int i = 1; i < NUM_THREADS; ++i) {
+        len = array_of_strings[i]->length();
+        cur_str = array_of_strings[i]->substr(0, len - 1);
+
+        // check the ending of the string
+        auto beg_of_str_num = array_of_strings[i]->substr(0, 1);
+        auto beg_of_str_char = array_of_strings[i]->substr(0, 1);
+
+        // if the things are equal, add
+        if (prev_char == beg_of_str_char) {
+            prev_num =
+                    std::to_string(std::stoi(prev_num)
+                    + std::stoi(beg_of_str_num));
+            ret.append(prev_num);
+            ret.append(prev_char);
+            ret.append(cur_str.substr(2, len - 3));
+        } else {  // just append something to ret
+            ret.append(prev_num);
+            ret.append(prev_char);
+            ret.append(cur_str.substr(0, len - 3));
+        }
+
+        auto prev_num = array_of_strings[i]->substr(len - 3, len - 2);
+        auto prev_char = array_of_strings[i]->substr(len - 2, len - 1);
     }
 
-    // if the first thing==second thing {
-    //     // do easy thing
-    // } else {
-    //     // hard thing
-    // }
-
-    printf("%s", new_buffer);
+    return ret;
 }
 
 /**
@@ -143,10 +143,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Make a buffer of the sum-size
-    unsigned char *buffer = (unsigned char *) malloc(size);
-
-    // Our final result is also malloced here
-    zipped_buffer = (unsigned char *) malloc(5 * size);
+    auto *buffer = (unsigned char *) malloc(size);
 
     size_t n = 0;
     for (int i = 1; i < argc; ++i) {
@@ -160,22 +157,16 @@ int main(int argc, char *argv[]) {
     }
 
     size_t size_of_each_threads_work = size / (size_t) NUM_THREADS;
-    pthread_t threads[NUM_THREADS];
+    // pthread_t threads[NUM_THREADS];
+    std::vector<std::thread> threads;
 
     // plz be a deep copy
     unsigned char *buffer_ptr = buffer;
-
-    struct arg_struct arguments_array[NUM_THREADS];
 
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
         size_t this_buffer_size = size_of_each_threads_work;
-
-        // if there's nothing for this thread to do, have it do nothing
-        if (buffer_ptr >= buffer + size) {
-            pthread_create(&threads[pid], NULL, do_nothing, NULL);
-        }
 
         // here we check to see if we need to change the size of
         // the threads work. if multiple of the same letter are
@@ -197,29 +188,23 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        // struct arg_struct args;
-        // make sure that the following is a deep copy, not shallow
-        struct arg_struct arguments;
-
-        arguments._buffer = buffer_ptr;
-        arguments._size = this_buffer_size;
-
-        arguments_array[pid] = arguments;
-
         // simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
-        pthread_create(&threads[pid], NULL, zip_thread,
-                       (void *) &arguments_array[pid]);
+        threads.emplace_back(std::thread(
+                [=]() { zip_thread(buffer_ptr, this_buffer_size, pid); }));
 
-        // sleep(1);
         buffer_ptr = buffer_ptr + this_buffer_size;
     }
 
     // join threads here
-    for (int pid = 0; pid < NUM_THREADS; ++pid) {
-        pthread_join(threads[pid], NULL);
+    for (size_t pid = 0; pid < NUM_THREADS; ++pid) {
+        threads[pid].join();
     }
 
+    std::string the_string = merge();
+
+    /// hahaHAAHHAHAHAHAHAHAHAHA
+    std::cout << the_string << std::flush;
     // Run-length-encode the buffer to stdout
     // zip(buffer, size);
 
