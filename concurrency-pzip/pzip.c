@@ -4,11 +4,10 @@
  * Wisconsin zip is a file compression tool.
  * The compression used is run-length encoding.
  */
-#include <pthread.h>    //for pthreads and mutex
-#include <stdio.h>      //for io
-#include <stdlib.h>     //idk what this is for
-
-#include <unistd.h>     //for sleep
+#include <pthread.h>  // for pthreads and mutex
+#include <stdio.h>    // for io
+#include <stdlib.h>   // idk what this is for
+#include <unistd.h>   // for sleep
 
 pthread_mutex_t write_to_file_lock;
 const int NUM_THREADS = 2;
@@ -46,14 +45,14 @@ size_t get_stream_size(FILE *stream) {
 }
 
 // writes whatever void *ptr points to to the stream.
-// this shoul dbe used at the end when all the threads 
-// are done doing the stuff and they want to write to 
+// this should dbe used at the end when all the threads
+// are done doing the stuff and they want to write to
 // the output thingy
 void write_to_file(void *ptr, FILE *stream) {
     // writes to a file, locks a mutex so 2 threads don't fuck each other up
-    //pthread_mutex_lock(&write_to_file_lock);
+    // pthread_mutex_lock(&write_to_file_lock);
     fwrite(ptr, 4, 1, stream);
-    //pthread_mutex_unlock(&write_to_file_lock);
+    // pthread_mutex_unlock(&write_to_file_lock);
 }
 
 /**
@@ -118,9 +117,7 @@ void *zip_thread(void *arguments) {
     return NULL;
 }
 
-void *do_nothinggg(){
-    return NULL;
-}
+void *do_nothing() { return NULL; }
 
 /**
  * File compression tool.
@@ -160,22 +157,22 @@ int main(int argc, char *argv[]) {
     size_t size_of_each_threads_work = size / (size_t) NUM_THREADS;
     pthread_t threads[NUM_THREADS];
 
-    //plz be a deep copy
+    // plz be a deep copy
     unsigned char *buffer_ptr = buffer;
 
-    struct arg_struct args[NUM_THREADS];
+    struct arg_struct arguments_array[NUM_THREADS];
 
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
         size_t this_buffer_size = size_of_each_threads_work;
 
-        //if there;s nothign for this thread to do, have it do nothing
-        if(buffer_ptr >= buffer + size){
-            pthread_create(&threads[pid],NULL, do_nothinggg, NULL);
+        // if there's nothing for this thread to do, have it do nothing
+        if (buffer_ptr >= buffer + size) {
+            pthread_create(&threads[pid], NULL, do_nothing, NULL);
         }
 
-        // here we check to see if we need to change the size of 
+        // here we check to see if we need to change the size of
         // the threads work. if multiple of the same letter are
         // spread across multiple thread's works, we just take all
         // of the same letter and give it to a thread.
@@ -183,35 +180,34 @@ int main(int argc, char *argv[]) {
         while (buffer_ptr != buffer && pid != NUM_THREADS - 1) {
             // check if the letters are the same
             //
-            if ( buffer_ptr[this_buffer_size] == buffer_ptr[this_buffer_size+1]) {
+            if (buffer_ptr[this_buffer_size] ==
+                buffer_ptr[this_buffer_size + 1]) {
                 this_buffer_size++;
             }
 
-
-            //if it just so happens that the remainder of the buffer is
+            // if it just so happens that the remainder of the buffer is
             // all the same number, don't keep trying to look at things
-            if ((buffer_ptr + this_buffer_size) == (buffer + size)) 
-            {
+            if ((buffer_ptr + this_buffer_size) == (buffer + size)) {
                 break;
             }
         }
 
-        //struct arg_struct args;
-        //make sure that the following is a deep copy, not shallow
-        struct arg_struct arggies;
+        // struct arg_struct args;
+        // make sure that the following is a deep copy, not shallow
+        struct arg_struct arguments;
 
-        arggies._buffer = buffer_ptr;
-        arggies._size = this_buffer_size;
+        arguments._buffer = buffer_ptr;
+        arguments._size = this_buffer_size;
 
-        args[pid] = arggies;
+        arguments_array[pid] = arguments;
 
         // simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
-        pthread_create(&threads[pid], NULL, zip_thread, (void *) &args[pid]);
+        pthread_create(&threads[pid], NULL, zip_thread,
+                       (void *) &arguments_array[pid]);
 
-        //sleep(1);
+        // sleep(1);
         buffer_ptr = buffer_ptr + this_buffer_size;
-
     }
 
     // join threads here
