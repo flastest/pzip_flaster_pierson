@@ -9,8 +9,8 @@
 #include <stdlib.h>   // idk what this is for
 #include <unistd.h>   // for sleep
 
-pthread_mutex_t write_to_file_lock;
-const int NUM_THREADS = 2;
+static pthread_mutex_t write_to_file_lock;
+static const int NUM_THREADS = 2;
 
 struct arg_struct {
     unsigned char *_buffer;
@@ -53,31 +53,6 @@ static void write_to_file(void *ptr, FILE *stream) {
     // pthread_mutex_lock(&write_to_file_lock);
     fwrite(ptr, 4, 1, stream);
     // pthread_mutex_unlock(&write_to_file_lock);
-}
-
-/**
- * Zip run-length-encoding procedure.
- * Prints compressed buffer to stdout.
- * @param buffer to compress
- * @param size of buffer
- */
-static void zip(const unsigned char *buffer, size_t size) {
-    unsigned char curr;
-    unsigned char next;
-    size_t count = 1;
-    for (size_t i = 0; i < size;) {
-        curr = buffer[i];
-        next = buffer[++i];
-        if (curr == next) {
-            count += 1;
-        } else {
-            write_to_file(&count, stdout);
-            // fwrite(&count, 4, 1, stdout);
-            // printf("%i", count);
-            printf("%c", curr);
-            count = 1;
-        }
-    }
 }
 
 /**
@@ -148,7 +123,7 @@ int main(int argc, char *argv[]) {
         // Read all the files into the buffer
         FILE *stream = open_file(argv[i], "r");
         for (int c = fgetc(stream); c > EOF; c = fgetc(stream)) {
-            buffer[n] = c;
+            buffer[n] = (unsigned char) c;
             ++n;
         }
         fclose(stream);
