@@ -100,6 +100,8 @@ static char *merge() {
 
         // if the things are equal, add the numbers and merge the 2 things
         if (prev_char == beg_of_str_char) {
+            /// START OF REALLY BAD COMPILER ERRORS OMG
+            // No viable overloaded '='
             prev_num = (*(reinterpret_cast<uint32_t *>(&prev_num)) + *(reinterpret_cast<uint32_t *>(&beg_of_str_num)));
             ret.append(prev_num, 1);
             ret.append(prev_char, 1);
@@ -114,6 +116,7 @@ static char *merge() {
         prev_char = array_of_buffers[i].substr(len - 1);
     }
     return ret;
+    /// END OF REALLY BAD COMPILER ERRORS OMG
 }
 
 /**
@@ -162,6 +165,7 @@ int main(int argc, char *argv[]) {
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
+        /// START OF CODE LOOKS KINDA SUS
         size_t this_buffer_size = size_of_each_threads_work;
 
         // here we check to see if we need to change the size of
@@ -177,6 +181,7 @@ int main(int argc, char *argv[]) {
             zip_thread(buffer_ptr, size_of_each_threads_work,
                        static_cast<unsigned int>(pid));
         }));
+        /// END OF CODE LOOKS KINDA SUS
 
         buffer_ptr = buffer_ptr + size_of_each_threads_work;
     }
