@@ -13,7 +13,7 @@
 
 #define NUM_THREADS 1
 
-static std::string array_of_buffers[NUM_THREADS];  // i think this is correct
+static std::vector<std::byte> array_of_buffers[NUM_THREADS];  // i think this is correct
 
 /**
  * Open a stream for a file.
@@ -64,16 +64,14 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
         if (curr == next) {
             count += 1;
         } else {
-            // we probably don't need this, right?
-            std::string ret = std::to_string(count);
+            //for (int j = 0; j < 4; j++) {
+            //    array_of_buffers[pid].push_back(static_cast<std::byte>(count >> (j * 8u)));
+            //}
 
-            // TODO: change this stuff to modify vectors
-            // instead of just printing them
-            // to_string: Segmentation fault
+            auto *count_ptr = reinterpret_cast<std::byte *>(&count);
+            array_of_buffers[pid].insert(std::end(array_of_buffers[pid]), count_ptr, count_ptr + 4);
 
-            ret += curr;
-
-            array_of_buffers[pid]+=ret;
+            array_of_buffers[pid].push_back(static_cast<std::byte>(curr));
             count = 1;
         }
     }
@@ -82,47 +80,39 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
 
 // iterates through a char* and merges things like 4a5a to become something
 // nice like 9a.
-static char* merge() {
+static char *merge() {
+    auto len = array_of_buffers[0].size();
 
-    std::string ret;  // sorry eitan I'm being lazy
+    std::vector<std::byte> prev_num(&(array_of_buffers[0][len - 5]), &(array_of_buffers[0][len - 2]));
+    std::byte prev_char = array_of_buffers[0].at(len - 1);
 
-    auto len = array_of_buffers[0].length();
+    std::vector<std::byte> cur_str(&(array_of_buffers[0][0]), &(array_of_buffers[0][len - 1]));
 
-    std::cout << "current string is " << array_of_buffers[0] << std::endl;
-
-    char prev_num = array_of_buffers[0].at(len - 2);
-    char prev_char = array_of_buffers[0].at(len - 1);
-
-    std::cout<<"prev num and prev char are "<<prev_num << " and "<< prev_char <<std::endl;
-
-
-    auto cur_str = array_of_buffers[0].substr(0, len - 1);
+    auto ret = cur_str;
 
     for (int i = 1; i < NUM_THREADS; ++i) {
-        len = array_of_buffers[i].length();
-        cur_str = array_of_buffers[i].substr(0, len - 1);
+        len = array_of_buffers[i].size();
+        cur_str = std::vector<std::byte>(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 1]));
 
         // check the ending of the string
-        char beg_of_str_num = array_of_buffers[i].at(0);
-        char beg_of_str_char = array_of_buffers[i].at(1);
+        std::byte beg_of_str_num = array_of_buffers[i][0];
+        std::byte beg_of_str_char = array_of_buffers[i][1];
 
-        // if the things are equal, add
+        // if the things are equal, add the numbers and merge the 2 things
         if (prev_char == beg_of_str_char) {
-            prev_num =
-                    ((prev_num) + (beg_of_str_num));
-            ret.append(prev_num,1);
-            ret.append(prev_char,1);
+            prev_num = (*(reinterpret_cast<uint32_t *>(&prev_num)) + *(reinterpret_cast<uint32_t *>(&beg_of_str_num)));
+            ret.append(prev_num, 1);
+            ret.append(prev_char, 1);
             ret += (cur_str.substr(2, len - 2));
         } else {  // just append something to ret
-            ret.append(prev_num,1);
-            ret.append(prev_char,1);
+            ret.append(prev_num, 1);
+            ret.append(prev_char, 1);
             ret += (cur_str.substr(0, len - 2));
         }
 
         prev_num = array_of_buffers[i].substr(len - 2, len - 1);
         prev_char = array_of_buffers[i].substr(len - 1);
     }
-    std::cout<<"Merged is "<<ret<<std::endl;
     return ret;
 }
 
