@@ -13,7 +13,7 @@
 
 #define NUM_THREADS 1
 
-static std::string array_of_strings[NUM_THREADS];  // i think this is correct
+static std::string array_of_buffers[NUM_THREADS];  // i think this is correct
 
 /**
  * Open a stream for a file.
@@ -51,9 +51,9 @@ static size_t get_stream_size(FILE *stream) {
  */
 static void *zip_thread(const unsigned char *buffer, size_t size,
                         unsigned int pid) {
-    // #ifdef DEBUG
-    //     fprintf(stderr, "buffer: %s, size: %lu\n", buffer, size);
-    // #endif
+#ifdef DEBUG
+    std::cout<<"buffer is "<<buffer<< "size is " << size <<std::endl;
+#endif
 
     unsigned char curr;
     unsigned char next;
@@ -70,10 +70,10 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
             // TODO: change this stuff to modify vectors
             // instead of just printing them
             // to_string: Segmentation fault
-            
-            ret += (curr);
 
-            array_of_strings[pid]=ret;
+            ret += curr;
+
+            array_of_buffers[pid]+=ret;
             count = 1;
         }
     }
@@ -82,40 +82,47 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
 
 // iterates through a char* and merges things like 4a5a to become something
 // nice like 9a.
-static std::string merge() {
+static char* merge() {
+
     std::string ret;  // sorry eitan I'm being lazy
 
-    auto prev_num = array_of_strings[0].substr(0, 1);
-    auto prev_char = array_of_strings[0].substr(1, 2);
+    auto len = array_of_buffers[0].length();
 
-    auto len = array_of_strings[0].length();
-    auto cur_str = array_of_strings[0].substr(0, len - 1);
+    std::cout << "current string is " << array_of_buffers[0] << std::endl;
+
+    char prev_num = array_of_buffers[0].at(len - 2);
+    char prev_char = array_of_buffers[0].at(len - 1);
+
+    std::cout<<"prev num and prev char are "<<prev_num << " and "<< prev_char <<std::endl;
+
+
+    auto cur_str = array_of_buffers[0].substr(0, len - 1);
 
     for (int i = 1; i < NUM_THREADS; ++i) {
-        len = array_of_strings[i].length();
-        cur_str = array_of_strings[i].substr(0, len - 1);
+        len = array_of_buffers[i].length();
+        cur_str = array_of_buffers[i].substr(0, len - 1);
 
         // check the ending of the string
-        auto beg_of_str_num = array_of_strings[i].substr(0, 1);
-        auto beg_of_str_char = array_of_strings[i].substr(0, 1);
+        char beg_of_str_num = array_of_buffers[i].at(0);
+        char beg_of_str_char = array_of_buffers[i].at(1);
 
         // if the things are equal, add
         if (prev_char == beg_of_str_char) {
             prev_num =
-                    std::to_string(std::stoi(prev_num) + std::stoi(beg_of_str_num));
-            ret.append(prev_num);
-            ret.append(prev_char);
-            ret.append(cur_str.substr(2, len - 3));
+                    ((prev_num) + (beg_of_str_num));
+            ret.append(prev_num,1);
+            ret.append(prev_char,1);
+            ret += (cur_str.substr(2, len - 2));
         } else {  // just append something to ret
-            ret.append(prev_num);
-            ret.append(prev_char);
-            ret.append(cur_str.substr(0, len - 3));
+            ret.append(prev_num,1);
+            ret.append(prev_char,1);
+            ret += (cur_str.substr(0, len - 2));
         }
 
-        prev_num = array_of_strings[i].substr(len - 3, len - 2);
-        prev_char = array_of_strings[i].substr(len - 2, len - 1);
+        prev_num = array_of_buffers[i].substr(len - 2, len - 1);
+        prev_char = array_of_buffers[i].substr(len - 1);
     }
-    std::cout<<"merge is " <<array_of_strings[0]<<std::endl;
+    std::cout<<"Merged is "<<ret<<std::endl;
     return ret;
 }
 
@@ -155,17 +162,15 @@ int main(int argc, char *argv[]) {
     }
 
     size_t size_of_each_threads_work = size / static_cast<size_t>(NUM_THREADS);
-    
+
     std::vector<std::thread> threads;
 
     // plz be a deep copy
     unsigned char *buffer_ptr = buffer;
 
-    std::cout<<"made it to before thread allocation and running\n";
 
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
-        std::cout <<"pid for creating is " <<pid<<std::endl;
         // this keeps track of the size of this buffer
         size_t this_buffer_size = size_of_each_threads_work;
 
@@ -174,7 +179,7 @@ int main(int argc, char *argv[]) {
         // spread across multiple thread's works, we just take all
         // of the same letter and give it to a thread.
         // if the thread is the first or last, we don't check it
-        
+
 
         // simple way to make zip as compressed as possible, check here for
         // first/last thing in threads buffers being the same.
@@ -185,19 +190,14 @@ int main(int argc, char *argv[]) {
 
         buffer_ptr = buffer_ptr + size_of_each_threads_work;
     }
-    std::cout<<"made it past the threads\n";
 
     // join threads here
     for (int pid = 0; pid < NUM_THREADS; pid++) {
-        std::cout<<"the pid for joining is " << pid <<std::endl;
         threads[pid].join();
     }
 
-    std::cout<<"made it past the threads joining\n";
 
     std::string the_string = merge();
-
-    std::cout<<"made it past merge\n";
 
     /// hahaHAAHHAHAHAHAHAHAHAHA
     std::cout << the_string << std::flush;
