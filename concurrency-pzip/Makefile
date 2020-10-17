@@ -5,7 +5,7 @@ CXX_GDB   = -ggdb3 -Og
 # install libasan liblsan libubsan
 CXX_SAN   = -fsanitize=address,leak,undefined
 CXX_NODB  = $(CXX_STD) $(CXX_W) $(CXX_GDB) -lpthread -pthread
-CXX_DB    = $(CXX_NODB) -DDEBUG -lpthread -pthread
+CXX_DB    = $(CXX_NODB) -DDEBUG
 CXX_SAN   = $(CXX_DB)  $(CXX_DB)
 SRC       = pzip
 EXE       = wzip
@@ -37,7 +37,7 @@ sanitize:
 	./$(EXE) $(TESTS)
 
 grind:
-	$(CXX) -o $(EXE) $(SRC).cc $(CXX_DB)
+	$(CXX) -o $(EXE) $(SRC).cc $(CXX_NODB)
 	valgrind -s --track-origins=yes --leak-check=full --show-leak-kinds=all ./$(EXE) $(TESTS)
 
 tidy:
