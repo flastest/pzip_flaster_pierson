@@ -141,31 +141,28 @@ static buffer_t merge() {
 #ifdef DEBUG
             std::cout << "they're equal!" << std::endl;
 #endif 
-            std::byte* bytes_prev_num = reinterpret_cast<std::byte*> (&prev_num[0]);
-            std::byte* bytes_beg_num = reinterpret_cast<std::byte*> (&beg_of_str_num[0]);
 
-            uint32_t *num_prev = reinterpret_cast<uint32_t *>(&bytes_prev_num);
-            uint32_t *num_beg = reinterpret_cast<uint32_t *>(&bytes_beg_num);
+            auto int_prev_num =  *reinterpret_cast<uint32_t *>(&prev_num[0]);
+            auto int_beg_num =  *reinterpret_cast<uint32_t *>(&beg_of_str_num[0]);
             
 
-//            std::cout<<"num prev is "<<*num_prev<<std::endl;
-
-            uint32_t new_count = *num_prev + *num_beg;
-
- //           uint32_t new_count = (*(reinterpret_cast<uint32_t*>(&bytes_prev_num)) +
-   //                             *(reinterpret_cast<uint32_t*>(&bytes_beg_num)));
+            uint32_t new_count = int_beg_num + int_prev_num;
             //convert new number to byte array
+
             auto *new_count_ptr = reinterpret_cast<std::byte *>(&new_count);
-#ifdef DEBUG
-            std::cout<<"new count is "<<new_count<<std::endl;
-            std::cout<<"char is "<<static_cast<unsigned char>(beg_of_str_char)<<std::endl;
-#endif
-            ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 5);
+       //     std::cout<<"new count is "<<new_count<<std::endl;
+ //           std::cout<<"char is "<<static_cast<unsigned char>(beg_of_str_char)<<std::endl;
+
+            ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 4);
             ret.push_back(beg_of_str_char);
 #ifdef DEBUG          
             std::cout << "ret is [" << std::flush;
             for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
             std::cout << "]" << std::endl;
+            std::cout << "cur_str is [" << std::flush;
+            for (auto c : cur_str) std::cout << static_cast<unsigned char>(c) << std::flush;
+            std::cout << "]" << std::endl;
+            std::cout<<"length of curstr should be greater than 5. it is: "<<cur_str.size()<<std::endl; 
 #endif
             if (!cur_str.empty()) ret.insert(std::end(ret), std::begin(cur_str) + 5, std::end(cur_str) - 5);
         
@@ -213,12 +210,14 @@ static buffer_t merge() {
         }
 
         prev_num = buffer_t(&(array_of_buffers[i][len - 5]), &(array_of_buffers[i][len - 1]));
-
         prev_char = array_of_buffers[i].at(len - 1);
     }
     //this is good
-    ret.insert(std::end(ret), std::begin(prev_num), std::end(prev_num));
-    ret.push_back(prev_char);
+    if(!cur_str.empty())
+    {
+        ret.insert(std::end(ret), std::begin(prev_num), std::end(prev_num));
+        ret.push_back(prev_char);
+    }
     return ret;
 }
 
@@ -286,6 +285,11 @@ int main(int argc, char *argv[]) {
     buffer_t the_string = merge();
 
     /// hahaHAAHHAHAHAHAHAHAHAHA
+//    for (uint32_t  i = 0; i < the_string.size(); i+=5) {
+//        std::cout<< *reinterpret_cast<uint32_t *>(&the_string[i]); 
+//        std::cout<< static_cast<unsigned char>(the_string[i+4]);
+//    }
+//    std::cout<<std::flush;
     for (auto c : the_string) std::cout << static_cast<unsigned char>(c) << std::flush;
 
     std::cout << std::flush;

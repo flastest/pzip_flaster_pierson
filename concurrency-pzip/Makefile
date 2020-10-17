@@ -19,6 +19,9 @@ all: pzip
 pzip: pzip.o
 	$(CXX) $(CXX_STD) $(CXX_NODB) -o $(EXE) $(SRC).o
 
+debug: 
+	$(CXX) -o $(EXE) $(SRC).cc $(CXX_DB)
+
 valgrind: all
 	valgrind --leak-check=full --show-leak-kinds=all ./$(EXE)
 
