@@ -4,6 +4,7 @@
  * Pissconsin zip is a file compression tool.
  * The compression used is run-length encoding.
  */
+#include <cstddef>   // for std::byte
 #include <cstdio>    // for io
 #include <cstdlib>   // atoi and other stuff
 #include <iostream>  // also for io
@@ -11,9 +12,17 @@
 #include <thread>    // for peethreads
 #include <vector>    // for something, can't put my finger on it tho
 
-#define NUM_THREADS 1
+#define NUM_THREADS 2
 
-static std::vector<std::byte> array_of_buffers[NUM_THREADS];  // i think this is correct
+using buffer_t = std::vector<std::byte>;
+
+static buffer_t array_of_buffers[NUM_THREADS];  // i think this is correct
+
+//delete this when we turn this thing in:
+#include <mutex>
+
+std::mutex print_lock;
+
 
 /**
  * Open a stream for a file.
@@ -55,6 +64,7 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
     std::cout<<"buffer is "<<buffer<< "size is " << size <<std::endl;
 #endif
 
+
     unsigned char curr;
     unsigned char next;
     size_t count = 1;
@@ -75,48 +85,86 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
             count = 1;
         }
     }
+//#ifdef DEBUG
+    std::lock_guard<std::mutex> guard(print_lock);
+    
+    for (auto c : array_of_buffers[pid]) std::cout<<static_cast<unsigned char>(c)<<std::flush;
+    std::cout <<" is what thread "<<pid<<" just did"<<std::endl;
+//#endif
     return nullptr;
 }
 
 // iterates through a char* and merges things like 4a5a to become something
 // nice like 9a.
-static char *merge() {
+static buffer_t merge() {
+
+
     auto len = array_of_buffers[0].size();
 
-    std::vector<std::byte> prev_num(&(array_of_buffers[0][len - 5]), &(array_of_buffers[0][len - 2]));
+    buffer_t prev_num(&(array_of_buffers[0][len - 5]), &(array_of_buffers[0][len -1]));
     std::byte prev_char = array_of_buffers[0].at(len - 1);
 
-    std::vector<std::byte> cur_str(&(array_of_buffers[0][0]), &(array_of_buffers[0][len - 1]));
+    buffer_t cur_str(&(array_of_buffers[0][0]), &(array_of_buffers[0][len - 5]));
 
     auto ret = cur_str;
-
+    std::cout<<"ret starts as ["<<std::flush;
+            for (auto c : ret) std::cout<<static_cast<unsigned char>(c)<<std::flush;
+            std::cout<<"]"<<std::endl;
     for (int i = 1; i < NUM_THREADS; ++i) {
         len = array_of_buffers[i].size();
-        cur_str = std::vector<std::byte>(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 1]));
+        cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
 
         // check the ending of the string
-        std::byte beg_of_str_num = array_of_buffers[i][0];
+        //std::byte beg_of_str_num = array_of_buffers[i][0];
+        buffer_t beg_of_str_num(&(array_of_buffers[i][0]), &(array_of_buffers[i][4]));
         std::byte beg_of_str_char = array_of_buffers[i][1];
 
         // if the things are equal, add the numbers and merge the 2 things
         if (prev_char == beg_of_str_char) {
-            /// START OF REALLY BAD COMPILER ERRORS OMG
-            // No viable overloaded '='
-            prev_num = (*(reinterpret_cast<uint32_t *>(&prev_num)) + *(reinterpret_cast<uint32_t *>(&beg_of_str_num)));
-            ret.append(prev_num, 1);
-            ret.append(prev_char, 1);
-            ret += (cur_str.substr(2, len - 2));
+            std::cout<<"they're equal!"<<std::endl;
+            size_t new_count = (*(reinterpret_cast<uint32_t *>(&prev_num)) + *(reinterpret_cast<uint32_t *>(&beg_of_str_num)));
+            //convert new number to byte array
+            auto *new_count_ptr = reinterpret_cast<std::byte *>(&new_count);
+            ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 5);
+            ret.push_back(prev_char);
+            if(cur_str.size()>0) ret.insert(std::end(ret), std::begin(cur_str) + 5, std::end(cur_str)-5);
         } else {  // just append something to ret
-            ret.append(prev_num, 1);
-            ret.append(prev_char, 1);
-            ret += (cur_str.substr(0, len - 2));
+            std::cout<<"beg of str size is "<<beg_of_str_num.size()<<std::endl;
+            std::cout<<"beg_of_str_num is [";
+            for (auto c : beg_of_str_num) std::cout<<static_cast<unsigned char>(c)<<std::flush;
+            std::cout<<"]"<<std::endl;
+
+//#ifdef DEBUG
+            std::cout<<"they're not equal"<<std::endl;
+            for (auto c : array_of_buffers[0]) std::cout<<static_cast<unsigned char>(c)<<std::flush;
+            std::cout<<std::endl;
+            for (auto c : array_of_buffers[1]) std::cout<<static_cast<unsigned char>(c)<<std::flush;
+            std::cout<<std::endl;
+
+//#endif
+
+            ret.insert(std::end(ret), std::begin(prev_num), std::end(prev_num));
+            ret.push_back(prev_char);
+//#ifdef DEBUG
+            std::cout<<"ret is ["<<std::flush;
+            for (auto c : ret) std::cout<<static_cast<unsigned char>(c)<<std::flush;
+            std::cout<<"]"<<std::endl;
+//#endif
+            //im 10% sure this is wrong
+            if (cur_str.size()>0){ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str)-5);
+            ret.insert(std::end(ret), std::begin(beg_of_str_num), std::end(beg_of_str_num));
+            ret.push_back(beg_of_str_char);}
         }
 
-        prev_num = array_of_buffers[i].substr(len - 2, len - 1);
-        prev_char = array_of_buffers[i].substr(len - 1);
+        prev_num = buffer_t(&(array_of_buffers[i][len - 5]), &(array_of_buffers[i][len - 1]));
+        
+        prev_char = array_of_buffers[i].at(len - 1);
+        std::cout<<"prevchar is "<<static_cast<unsigned char>(prev_char)<<std::endl;
     }
+    //this is good
+    ret.insert(std::end(ret), std::begin(prev_num), std::end(prev_num));
+    ret.push_back(prev_char);
     return ret;
-    /// END OF REALLY BAD COMPILER ERRORS OMG
 }
 
 /**
@@ -165,24 +213,13 @@ int main(int argc, char *argv[]) {
     // divvy up the work between all the threads
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
-        /// START OF CODE LOOKS KINDA SUS
-        size_t this_buffer_size = size_of_each_threads_work;
-
-        // here we check to see if we need to change the size of
-        // the threads work. if multiple of the same letter are
-        // spread across multiple thread's works, we just take all
-        // of the same letter and give it to a thread.
-        // if the thread is the first or last, we don't check it
 
 
-        // simple way to make zip as compressed as possible, check here for
-        // first/last thing in threads buffers being the same.
         threads.push_back(std::thread([=]() {
             zip_thread(buffer_ptr, size_of_each_threads_work,
                        static_cast<unsigned int>(pid));
         }));
-        /// END OF CODE LOOKS KINDA SUS
-
+        
         buffer_ptr = buffer_ptr + size_of_each_threads_work;
     }
 
@@ -192,10 +229,12 @@ int main(int argc, char *argv[]) {
     }
 
 
-    std::string the_string = merge();
+    buffer_t the_string = merge();
 
     /// hahaHAAHHAHAHAHAHAHAHAHA
-    std::cout << the_string << std::flush;
+    for (auto c : the_string) std::cout<<static_cast<unsigned char>(c)<<std::flush;
+
+    std::cout << std::flush;
     // Run-length-encode the buffer to stdout
     // zip(buffer, size);
 
