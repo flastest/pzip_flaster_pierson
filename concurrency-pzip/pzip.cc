@@ -58,8 +58,7 @@ static size_t get_stream_size(FILE *stream) {
  * @param size size of buffer
  * @return NULL
  */
-static void *zip_thread(const unsigned char *buffer, size_t size,
-                        unsigned int pid) {
+static void *zip_thread(const unsigned char *buffer, size_t size, size_t pid) {
 #ifdef DEBUG
     std::cout<<"buffer is "<<buffer<< "size is " << size <<std::endl;
 
@@ -266,7 +265,7 @@ int main(int argc, char *argv[]) {
 
 
     // divvy up the work between all the threads
-    for (int pid = 0; pid < NUM_THREADS; ++pid) {
+    for (size_t pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
 
         threads.push_back(std::thread([=]() {
@@ -278,7 +277,7 @@ int main(int argc, char *argv[]) {
     }
 
     // join threads here
-    for (int pid = 0; pid < NUM_THREADS; pid++) {
+    for (size_t pid = 0; pid < NUM_THREADS; pid++) {
         threads[pid].join();
     }
     
