@@ -11,7 +11,7 @@
 #include <thread>    // for peethreads
 #include <vector>    // for something, can't put my finger on it tho
 
-#define NUM_THREADS 4
+#define NUM_THREADS 1
 
 using buffer_t = std::vector<std::byte>;
 
@@ -68,13 +68,13 @@ static void *zip_thread(const unsigned char *buffer, size_t size, size_t pid) {
     std::cout<<"]"<<std::endl;
 #endif
 
+    unsigned char prev;
     unsigned char curr;
-    unsigned char next;
     size_t count = 1;
     for (size_t i = 0; i < size;) {
-        curr = buffer[i];
-        next = buffer[++i];
-        if (curr == next && i != size) {
+        prev = buffer[i];
+        curr = buffer[++i];
+        if (prev == curr && i != size) {
             count += 1;
         } else {
             //for (int j = 0; j < 4; j++) {
@@ -84,7 +84,7 @@ static void *zip_thread(const unsigned char *buffer, size_t size, size_t pid) {
             auto *count_ptr = reinterpret_cast<std::byte *>(&count);
             array_of_buffers[pid].insert(std::end(array_of_buffers[pid]), count_ptr, count_ptr + 4);
 
-            array_of_buffers[pid].push_back(static_cast<std::byte>(curr));
+            array_of_buffers[pid].push_back(static_cast<std::byte>(prev));
             count = 1;
         }
     }
@@ -100,6 +100,10 @@ static void *zip_thread(const unsigned char *buffer, size_t size, size_t pid) {
 // iterates through a char* and merges things like 4a5a to become something
 // nice like 9a.
 static buffer_t merge() {
+
+    if(NUM_THREADS == 1) {
+        return array_of_buffers[0];
+    }
 
     auto len = array_of_buffers[0].size();
     //std::cout<<"len is "<<len<<std::endl;
