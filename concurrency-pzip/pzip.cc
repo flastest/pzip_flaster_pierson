@@ -281,6 +281,14 @@ int main(int argc, char *argv[]) {
     for (size_t pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
 
+        if (pid == NUM_THREADS-1) {
+            threads.push_back(std::thread([=]() {
+            zip_thread(buffer_ptr, (size - (NUM_THREADS-1)*size_of_each_threads_work),
+                       static_cast<unsigned int>(pid));
+            }));
+            break;
+        }
+
         threads.push_back(std::thread([=]() {
             zip_thread(buffer_ptr, size_of_each_threads_work,
                        static_cast<unsigned int>(pid));
