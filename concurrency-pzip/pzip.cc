@@ -8,7 +8,6 @@
 #include <cstdio>    // for io
 #include <cstdlib>   // atoi and other stuff
 #include <iostream>  // also for io
-#include <string>    // for string
 #include <thread>    // for peethreads
 #include <vector>    // for something, can't put my finger on it tho
 
@@ -139,11 +138,11 @@ static buffer_t merge() {
 #ifdef DEBUG
             std::cout << "they're equal!" << std::endl;
 #endif
-            std::byte *bytes_prev_num = reinterpret_cast<std::byte *> (&prev_num[0]);
-            std::byte *bytes_beg_num = reinterpret_cast<std::byte *> (&beg_of_str_num[0]);
+            auto *bytes_prev_num = reinterpret_cast<std::byte *> (&prev_num[0]);
+            auto *bytes_beg_num = reinterpret_cast<std::byte *> (&beg_of_str_num[0]);
 
-            uint32_t *num_prev = reinterpret_cast<uint32_t *>(&bytes_prev_num);
-            uint32_t *num_beg = reinterpret_cast<uint32_t *>(&bytes_beg_num);
+            auto *num_prev = reinterpret_cast<uint32_t *>(&bytes_prev_num);
+            auto *num_beg = reinterpret_cast<uint32_t *>(&bytes_beg_num);
 
 
 //            std::cout<<"num prev is "<<*num_prev<<std::endl;
