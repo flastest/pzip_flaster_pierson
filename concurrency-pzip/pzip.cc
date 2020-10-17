@@ -128,7 +128,7 @@ static buffer_t merge() {
             auto *new_count_ptr = reinterpret_cast<std::byte *>(&new_count);
             ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 5);
             ret.push_back(prev_char);
-            if (cur_str.size() > 0) ret.insert(std::end(ret), std::begin(cur_str) + 5, std::end(cur_str) - 5);
+            if (!cur_str.empty()) ret.insert(std::end(ret), std::begin(cur_str) + 5, std::end(cur_str) - 5);
         } else {  // just append something to ret
             std::cout << "beg of str size is " << beg_of_str_num.size() << std::endl;
             std::cout << "beg_of_str_num is [";
@@ -152,7 +152,7 @@ static buffer_t merge() {
             std::cout << "]" << std::endl;
 //#endif
             //im 10% sure this is wrong
-            if (cur_str.size() > 0) {
+            if (!cur_str.empty()) {
                 ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str) - 5);
                 ret.insert(std::end(ret), std::begin(beg_of_str_num), std::end(beg_of_str_num));
                 ret.push_back(beg_of_str_char);
@@ -162,7 +162,7 @@ static buffer_t merge() {
         prev_num = buffer_t(&(array_of_buffers[i][len - 5]), &(array_of_buffers[i][len - 1]));
 
         prev_char = array_of_buffers[i].at(len - 1);
-        std::cout << "prevchar is " << static_cast<unsigned char>(prev_char) << std::endl;
+        std::cout << "prev_char is " << static_cast<unsigned char>(prev_char) << std::endl;
     }
     //this is good
     ret.insert(std::end(ret), std::begin(prev_num), std::end(prev_num));
