@@ -8,7 +8,6 @@
 #include <cstdio>    // for io
 #include <cstdlib>   // atoi and other stuff
 #include <iostream>  // also for io
-#include <string>    // for string
 #include <thread>    // for peethreads
 #include <vector>    // for something, can't put my finger on it tho
 
@@ -21,7 +20,7 @@ static buffer_t array_of_buffers[NUM_THREADS];  // i think this is correct
 //delete this when we turn this thing in:
 #include <mutex>
 
-std::mutex print_lock;
+static std::mutex print_lock;
 
 
 /**
@@ -58,8 +57,7 @@ static size_t get_stream_size(FILE *stream) {
  * @param size size of buffer
  * @return NULL
  */
-static void *zip_thread(const unsigned char *buffer, size_t size,
-                        unsigned int pid) {
+static void *zip_thread(const unsigned char *buffer, size_t size, size_t pid) {
 #ifdef DEBUG
     std::cout<<"buffer is "<<buffer<< "size is " << size <<std::endl;
 
@@ -125,12 +123,11 @@ static buffer_t merge() {
 #endif
     for (int i = 1; i < NUM_THREADS; ++i) {
 
-        
 
         len = array_of_buffers[i].size();
         cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
 
-        
+
 
         // check the ending of the string
         buffer_t beg_of_str_num(&(array_of_buffers[i][0]), &(array_of_buffers[i][4]));
@@ -155,7 +152,7 @@ static buffer_t merge() {
 
             ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 4);
             ret.push_back(beg_of_str_char);
-#ifdef DEBUG          
+#ifdef DEBUG
             std::cout << "ret is [" << std::flush;
             for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
             std::cout << "]" << std::endl;
@@ -165,7 +162,7 @@ static buffer_t merge() {
             std::cout<<"length of curstr should be greater than 5. it is: "<<cur_str.size()<<std::endl; 
 #endif
             if (!cur_str.empty()) ret.insert(std::end(ret), std::begin(cur_str) + 5, std::end(cur_str) - 5);
-        
+
 
         } else {  // just append something to ret
 #ifdef DEBUG
@@ -265,7 +262,7 @@ int main(int argc, char *argv[]) {
 
 
     // divvy up the work between all the threads
-    for (int pid = 0; pid < NUM_THREADS; ++pid) {
+    for (size_t pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
 
         threads.push_back(std::thread([=]() {
@@ -277,10 +274,10 @@ int main(int argc, char *argv[]) {
     }
 
     // join threads here
-    for (int pid = 0; pid < NUM_THREADS; pid++) {
+    for (size_t pid = 0; pid < NUM_THREADS; pid++) {
         threads[pid].join();
     }
-    
+
 
     buffer_t the_string = merge();
 
@@ -295,7 +292,7 @@ int main(int argc, char *argv[]) {
     std::cout << std::flush;
     // Run-length-encode the buffer to stdout
     // zip(buffer, size);
-    
+
     free(buffer);
 
     return EXIT_SUCCESS;
