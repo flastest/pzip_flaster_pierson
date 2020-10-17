@@ -62,14 +62,13 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
                         unsigned int pid) {
 #ifdef DEBUG
     std::cout<<"buffer is "<<buffer<< "size is " << size <<std::endl;
-#endif
 
     std::cout<<"buffer for "<<pid<<" is ["<<std::flush;
     for (size_t i = 0; i < size; i++) {
         std::cout<<static_cast<unsigned char>(buffer[i])<<std::flush;
     }
     std::cout<<"]"<<std::endl;
-
+#endif
 
     unsigned char curr;
     unsigned char next;
@@ -83,7 +82,7 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
             //for (int j = 0; j < 4; j++) {
             //    array_of_buffers[pid].push_back(static_cast<std::byte>(count >> (j * 8u)));
             //}
-            std::cout<<"count is " << count << " and char is [" << curr<<"]"<<std::endl;
+//            std::cout<<"count is " << count << " and char is [" << curr<<"]"<<std::endl;
             auto *count_ptr = reinterpret_cast<std::byte *>(&count);
             array_of_buffers[pid].insert(std::end(array_of_buffers[pid]), count_ptr, count_ptr + 4);
 
@@ -91,12 +90,12 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
             count = 1;
         }
     }
-//#ifdef DEBUG
+#ifdef DEBUG
     std::lock_guard<std::mutex> guard(print_lock);
 
     for (auto c : array_of_buffers[pid]) std::cout << static_cast<unsigned char>(c) << std::flush;
     std::cout << " is what thread " << pid << " just did" << std::endl;
-//#endif
+#endif
     return nullptr;
 }
 
@@ -104,27 +103,26 @@ static void *zip_thread(const unsigned char *buffer, size_t size,
 // nice like 9a.
 static buffer_t merge() {
 
-    std::cout<<"made it to merge"<<std::endl;
     auto len = array_of_buffers[0].size();
-    std::cout<<"len is "<<len<<std::endl;
+    //std::cout<<"len is "<<len<<std::endl;
 
     buffer_t prev_num(&(array_of_buffers[0][len - 5]), &(array_of_buffers[0][len - 1]));
     std::byte prev_char = array_of_buffers[0].at(len - 1);
-
+#ifdef DEBUG
     std::cout << "prev_num is [";
     for (auto c : prev_num) std::cout << static_cast<unsigned char>(c) << std::flush;
     std::cout << "]" << std::endl;
     std::cout<<"prevchar is ["<<static_cast<unsigned char>(prev_char)<<"]"<<std::endl;
-
+#endif
 
     buffer_t cur_str(&(array_of_buffers[0][0]), &(array_of_buffers[0][len - 5]));
 
     auto ret = cur_str;
-//#ifdef DEBUG
+#ifdef DEBUG
     std::cout << "ret starts as [" << std::flush;
     for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
     std::cout << "]" << std::endl;
-//#endif
+#endif
     for (int i = 1; i < NUM_THREADS; ++i) {
 
         
@@ -140,9 +138,9 @@ static buffer_t merge() {
 
         // if the things are equal, add the numbers and merge the 2 things
         if (prev_char == beg_of_str_char) {
-//#ifdef DEBUG
+#ifdef DEBUG
             std::cout << "they're equal!" << std::endl;
-//#endif 
+#endif 
             std::byte* bytes_prev_num = reinterpret_cast<std::byte*> (&prev_num[0]);
             std::byte* bytes_beg_num = reinterpret_cast<std::byte*> (&beg_of_str_num[0]);
 
@@ -150,7 +148,7 @@ static buffer_t merge() {
             uint32_t *num_beg = reinterpret_cast<uint32_t *>(&bytes_beg_num);
             
 
-            std::cout<<"num prev is "<<*num_prev<<std::endl;
+//            std::cout<<"num prev is "<<*num_prev<<std::endl;
 
             uint32_t new_count = *num_prev + *num_beg;
 
@@ -158,15 +156,17 @@ static buffer_t merge() {
    //                             *(reinterpret_cast<uint32_t*>(&bytes_beg_num)));
             //convert new number to byte array
             auto *new_count_ptr = reinterpret_cast<std::byte *>(&new_count);
+#ifdef DEBUG
             std::cout<<"new count is "<<new_count<<std::endl;
             std::cout<<"char is "<<static_cast<unsigned char>(beg_of_str_char)<<std::endl;
-
+#endif
             ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 5);
             ret.push_back(beg_of_str_char);
-            
+#ifdef DEBUG          
             std::cout << "ret is [" << std::flush;
             for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
             std::cout << "]" << std::endl;
+#endif
             if (!cur_str.empty()) ret.insert(std::end(ret), std::begin(cur_str) + 5, std::end(cur_str) - 5);
         
 
@@ -269,7 +269,6 @@ int main(int argc, char *argv[]) {
     for (int pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
 
-        std::cout<<"this thread's work is "<<size_of_each_threads_work<<std::endl;
         threads.push_back(std::thread([=]() {
             zip_thread(buffer_ptr, size_of_each_threads_work,
                        static_cast<unsigned int>(pid));
@@ -282,12 +281,9 @@ int main(int argc, char *argv[]) {
     for (int pid = 0; pid < NUM_THREADS; pid++) {
         threads[pid].join();
     }
-    std::cout<<"threads are joined!"<<std::endl;
-
+    
 
     buffer_t the_string = merge();
-
-    std::cout<<"ok merge is done"<<std::endl;
 
     /// hahaHAAHHAHAHAHAHAHAHAHA
     for (auto c : the_string) std::cout << static_cast<unsigned char>(c) << std::flush;
@@ -295,8 +291,7 @@ int main(int argc, char *argv[]) {
     std::cout << std::flush;
     // Run-length-encode the buffer to stdout
     // zip(buffer, size);
-    std::cout<<"ok we're done"<<std::endl;
-
+    
     free(buffer);
 
     return EXIT_SUCCESS;
