@@ -281,11 +281,8 @@ int main(int argc, char *argv[]) {
     for (size_t pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
 
-        auto this_threads_work = (pid*size)/NUM_THREADS;
-
-
         threads.push_back(std::thread([=]() {
-            zip_thread(buffer_ptr, this_threads_work,
+            zip_thread(buffer_ptr, size_of_each_threads_work,
                        static_cast<unsigned int>(pid));
         }));
 
@@ -301,11 +298,11 @@ int main(int argc, char *argv[]) {
     buffer_t the_string = merge();
 
     /// hahaHAAHHAHAHAHAHAHAHAHA
-    //for (uint32_t  i = 0; i < the_string.size(); i+=5) {
-    //    std::cout<< *reinterpret_cast<uint32_t *>(&the_string[i]); 
-    //    std::cout<< static_cast<unsigned char>(the_string[i+4]);
-    //}
-    std::cout<<std::flush;
+//    for (uint32_t  i = 0; i < the_string.size(); i+=5) {
+//        std::cout<< *reinterpret_cast<uint32_t *>(&the_string[i]); 
+//        std::cout<< static_cast<unsigned char>(the_string[i+4]);
+//    }
+//    std::cout<<std::flush;
     for (auto c : the_string) std::cout << static_cast<unsigned char>(c) << std::flush;
 
     std::cout << std::flush;
