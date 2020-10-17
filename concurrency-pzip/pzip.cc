@@ -106,32 +106,46 @@ static buffer_t merge() {
 
     buffer_t prev_num(&(array_of_buffers[0][len - 5]), &(array_of_buffers[0][len - 1]));
     std::byte prev_char = array_of_buffers[0].at(len - 1);
-#ifdef DEBUG
-    std::cout << "prev_num is [";
-    for (auto c : prev_num) std::cout << static_cast<unsigned char>(c) << std::flush;
-    std::cout << "]" << std::endl;
-    std::cout<<"prevchar is ["<<static_cast<unsigned char>(prev_char)<<"]"<<std::endl;
-#endif
 
-    buffer_t cur_str(&(array_of_buffers[0][0]), &(array_of_buffers[0][len - 5]));
 
-    auto ret = cur_str;
+    buffer_t cur_str= buffer_t(&(array_of_buffers[0][0]), &(array_of_buffers[0][len - 5]));
+
+    auto ret = buffer_t(&(array_of_buffers[0][0]), &(array_of_buffers[0][len - 5]));
+
 #ifdef DEBUG
     std::cout << "ret starts as [" << std::flush;
     for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
     std::cout << "]" << std::endl;
 #endif
+
     for (int i = 1; i < NUM_THREADS; ++i) {
 
+#ifdef DEBUG
+        std::cout<<"adding cur_str to ret"<<std::endl;
+        std::cout << "cur_str is [" << std::flush;
+        for (auto c : cur_str) std::cout << static_cast<unsigned char>(c) << std::flush;
+        std::cout << "]" << std::endl;
+#endif
 
-        len = array_of_buffers[i].size();
-        cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
 
+        
 
+#ifdef DEBUG
+                std::cout << "ret is now [" << std::flush;
+                for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
+                std::cout << "]" << std::endl;
+#endif
 
-        // check the ending of the string
+        
+        //i shouldn't need to calculate that all the time...
+
         buffer_t beg_of_str_num(&(array_of_buffers[i][0]), &(array_of_buffers[i][4]));
         std::byte beg_of_str_char = array_of_buffers[i][4];
+#ifdef DEBUG
+        std::cout<< "end of the previous buffer is " <<*reinterpret_cast<uint32_t *>(&prev_num[0])<<static_cast<unsigned char>(prev_char)<<std::endl;
+        std::cout<< "start of the next buffer is " <<*reinterpret_cast<uint32_t *>(&beg_of_str_num[0])<<static_cast<unsigned char>(beg_of_str_char)<<std::endl;
+#endif
+
 
         // if the things are equal, add the numbers and merge the 2 things
         if (prev_char == beg_of_str_char) {
@@ -161,7 +175,6 @@ static buffer_t merge() {
             std::cout << "]" << std::endl;
             std::cout<<"length of curstr should be greater than 5. it is: "<<cur_str.size()<<std::endl; 
 #endif
-            if (!cur_str.empty()) ret.insert(std::end(ret), std::begin(cur_str) + 5, std::end(cur_str) - 5);
 
 
         } else {  // just append something to ret
@@ -187,27 +200,18 @@ static buffer_t merge() {
             for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
             std::cout << "]" << std::endl;
 #endif
-            //im 10% sure this is wrong
-            if (!cur_str.empty()) {
-#ifdef DEBUG
-                std::cout<<"adding cur_str to ret"<<std::endl;
-                std::cout << "cur_str is [" << std::flush;
-                for (auto c : cur_str) std::cout << static_cast<unsigned char>(c) << std::flush;
-                std::cout << "]" << std::endl;
-#endif
-                ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str));
-                //ret.insert(std::end(ret), std::begin(beg_of_str_num), std::end(beg_of_str_num));
-                //ret.push_back(beg_of_str_char);
-#ifdef DEBUG
-                std::cout << "ret is now [" << std::flush;
-                for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
-                std::cout << "]" << std::endl;
-#endif
-            }
         }
+
+
+        len = array_of_buffers[i].size();
+        cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
 
         prev_num = buffer_t(&(array_of_buffers[i][len - 5]), &(array_of_buffers[i][len - 1]));
         prev_char = array_of_buffers[i].at(len - 1);
+
+        ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str));
+
+        
     }
     //this is good
     if(!cur_str.empty())
