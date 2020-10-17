@@ -11,7 +11,7 @@
 #include <thread>    // for peethreads
 #include <vector>    // for something, can't put my finger on it tho
 
-#define NUM_THREADS 2
+#define NUM_THREADS 4
 
 using buffer_t = std::vector<std::byte>;
 
@@ -118,34 +118,16 @@ static buffer_t merge() {
     std::cout << "]" << std::endl;
 #endif
 
-    for (int i = 1; i < NUM_THREADS; ++i) {
-
-#ifdef DEBUG
-        std::cout<<"adding cur_str to ret"<<std::endl;
-        std::cout << "cur_str is [" << std::flush;
-        for (auto c : cur_str) std::cout << static_cast<unsigned char>(c) << std::flush;
-        std::cout << "]" << std::endl;
-#endif
 
 
-        
-
-#ifdef DEBUG
-                std::cout << "ret is now [" << std::flush;
-                for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
-                std::cout << "]" << std::endl;
-#endif
-
-        
-        //i shouldn't need to calculate that all the time...
-
+    for (int i = 1; i < NUM_THREADS; ++i) {        
         buffer_t beg_of_str_num(&(array_of_buffers[i][0]), &(array_of_buffers[i][4]));
         std::byte beg_of_str_char = array_of_buffers[i][4];
+
 #ifdef DEBUG
         std::cout<< "end of the previous buffer is " <<*reinterpret_cast<uint32_t *>(&prev_num[0])<<static_cast<unsigned char>(prev_char)<<std::endl;
         std::cout<< "start of the next buffer is " <<*reinterpret_cast<uint32_t *>(&beg_of_str_num[0])<<static_cast<unsigned char>(beg_of_str_char)<<std::endl;
 #endif
-
 
         // if the things are equal, add the numbers and merge the 2 things
         if (prev_char == beg_of_str_char) {
@@ -155,28 +137,45 @@ static buffer_t merge() {
 
             auto int_prev_num =  *reinterpret_cast<uint32_t *>(&prev_num[0]);
             auto int_beg_num =  *reinterpret_cast<uint32_t *>(&beg_of_str_num[0]);
-            
-
             uint32_t new_count = int_beg_num + int_prev_num;
             //convert new number to byte array
-
             auto *new_count_ptr = reinterpret_cast<std::byte *>(&new_count);
-       //     std::cout<<"new count is "<<new_count<<std::endl;
- //           std::cout<<"char is "<<static_cast<unsigned char>(beg_of_str_char)<<std::endl;
 
-            ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 4);
-            ret.push_back(beg_of_str_char);
+            if(!cur_str.empty()){
+                ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 4);
+                ret.push_back(beg_of_str_char);
+
+                //getting things ready for the next iteration of the loop
+                len = array_of_buffers[i].size();
+                cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
+
+                prev_num = buffer_t(&(array_of_buffers[i][len - 5]), &(array_of_buffers[i][len - 1]));
+                prev_char = array_of_buffers[i].at(len - 1);
+                ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str));
+            } else{//prepping for next iteration of the loop
+                len = array_of_buffers[i].size();
+                cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
+
+                prev_num = buffer_t(new_count_ptr, new_count_ptr + 4);
+                
 #ifdef DEBUG
-            std::cout << "ret is [" << std::flush;
-            for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
-            std::cout << "]" << std::endl;
-            std::cout << "cur_str is [" << std::flush;
-            for (auto c : cur_str) std::cout << static_cast<unsigned char>(c) << std::flush;
-            std::cout << "]" << std::endl;
-            std::cout<<"length of curstr should be greater than 5. it is: "<<cur_str.size()<<std::endl; 
+                std::cout<<"adding cur_str to ret"<<std::endl;
+                std::cout << "cur_str is [" << std::flush;
+                for (auto c : cur_str) std::cout << static_cast<unsigned char>(c) << std::flush;
+                std::cout << "]" << std::endl;
 #endif
 
+                if (i ==NUM_THREADS-1) {
+                   ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 4);
+                   ret.push_back(beg_of_str_char);
+                }
+#ifdef DEBUG
+                std::cout << "ret is now [" << std::flush;
+                for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
+                std::cout << "]" << std::endl;
+#endif
 
+            }
         } else {  // just append something to ret
 #ifdef DEBUG
             std::cout << "beg of str size is " << beg_of_str_num.size() << std::endl;
@@ -200,18 +199,31 @@ static buffer_t merge() {
             for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
             std::cout << "]" << std::endl;
 #endif
-        }
-
-
-        len = array_of_buffers[i].size();
-        cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
-
-        prev_num = buffer_t(&(array_of_buffers[i][len - 5]), &(array_of_buffers[i][len - 1]));
-        prev_char = array_of_buffers[i].at(len - 1);
-
-        ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str));
-
         
+
+
+            //setting up curstr for the next iteration of the loop
+            len = array_of_buffers[i].size();
+            cur_str = buffer_t(&(array_of_buffers[i][0]), &(array_of_buffers[i][len - 5]));
+
+            prev_num = buffer_t(&(array_of_buffers[i][len - 5]), &(array_of_buffers[i][len - 1]));
+            prev_char = array_of_buffers[i].at(len - 1);
+
+#ifdef DEBUG
+            std::cout<<"adding cur_str to ret"<<std::endl;
+            std::cout << "cur_str is [" << std::flush;
+            for (auto c : cur_str) std::cout << static_cast<unsigned char>(c) << std::flush;
+            std::cout << "]" << std::endl;
+#endif
+
+            ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str));
+
+#ifdef DEBUG
+            std::cout << "ret is now [" << std::flush;
+            for (auto c : ret) std::cout << static_cast<unsigned char>(c) << std::flush;
+            std::cout << "]" << std::endl;
+#endif
+        }  
     }
     //this is good
     if(!cur_str.empty())
@@ -269,8 +281,11 @@ int main(int argc, char *argv[]) {
     for (size_t pid = 0; pid < NUM_THREADS; ++pid) {
         // this keeps track of the size of this buffer
 
+        auto this_threads_work = (pid*size)/NUM_THREADS;
+
+
         threads.push_back(std::thread([=]() {
-            zip_thread(buffer_ptr, size_of_each_threads_work,
+            zip_thread(buffer_ptr, this_threads_work,
                        static_cast<unsigned int>(pid));
         }));
 
@@ -286,11 +301,11 @@ int main(int argc, char *argv[]) {
     buffer_t the_string = merge();
 
     /// hahaHAAHHAHAHAHAHAHAHAHA
-//    for (uint32_t  i = 0; i < the_string.size(); i+=5) {
-//        std::cout<< *reinterpret_cast<uint32_t *>(&the_string[i]); 
-//        std::cout<< static_cast<unsigned char>(the_string[i+4]);
-//    }
-//    std::cout<<std::flush;
+    //for (uint32_t  i = 0; i < the_string.size(); i+=5) {
+    //    std::cout<< *reinterpret_cast<uint32_t *>(&the_string[i]); 
+    //    std::cout<< static_cast<unsigned char>(the_string[i+4]);
+    //}
+    std::cout<<std::flush;
     for (auto c : the_string) std::cout << static_cast<unsigned char>(c) << std::flush;
 
     std::cout << std::flush;
