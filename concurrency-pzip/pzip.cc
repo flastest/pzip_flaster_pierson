@@ -77,7 +77,7 @@ static void zip(const std::byte *buff, size_t len, size_t thread) {
 static buff_t merge() {
     size_t len = buffs[0].size();
     rle_t prev = buffs[0][len - 1];
-    auto c_buff = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    auto buff = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
     auto ret = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
 
     for (size_t i = 1; i < NUM_THREADS; ++i) {
@@ -87,20 +87,20 @@ static buff_t merge() {
         if (prev.c == first.c) {
             uint32_t new_count = prev.n + first.n;
 
-            if (!c_buff.empty()) {
+            if (!buff.empty()) {
                 // append to ret
                 ret.push_back({first.c, new_count});
 
                 // for the next iteration of the loop
                 len = buffs[i].size();
                 prev = buffs[i][len - 1];
-                c_buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-                ret.insert(std::end(ret), std::begin(c_buff), std::end(c_buff));
+                buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+                ret.insert(std::end(ret), std::begin(buff), std::end(buff));
             } else {
                 // for next iteration of the loop
                 len = buffs[i].size();
                 prev = {first.c, new_count};
-                c_buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+                buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
                 if (i == NUM_THREADS - 1) ret.push_back({first.c, new_count});
             }
         } else {
@@ -110,13 +110,13 @@ static buff_t merge() {
             // for the next iteration of the loop
             len = buffs[i].size();
             prev = buffs[i][len - 1];
-            c_buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-            ret.insert(std::end(ret), std::begin(c_buff), std::end(c_buff));
+            buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+            ret.insert(std::end(ret), std::begin(buff), std::end(buff));
         }
     }
 
     // this is good
-    if (!c_buff.empty()) {
+    if (!buff.empty()) {
         ret.push_back(prev);
     }
 
