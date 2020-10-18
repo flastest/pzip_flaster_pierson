@@ -76,7 +76,7 @@ static void zip(const std::byte *buff, size_t len, size_t thread) {
 static buff_t merge() {
     size_t len = buffs[0].size();
     rle_t last = buffs[0][len - 1];
-    auto temp = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    auto cur = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
     auto ret = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
 
     if (NUM_THREADS == 1) {
@@ -86,28 +86,32 @@ static buff_t merge() {
     for (size_t i = 1; i < NUM_THREADS; ++i) {
         rle_t first = buffs[i][0];
 
-        // if equal, add the numbers and merge
+        // if characters equal, add the counts and merge
         if (last.c == first.c) {
             uint32_t new_count = last.n + first.n;
 
-            if (!temp.empty()) {
+            if (!cur.empty()) {
+                /// rle has middle
                 // append to ret
                 ret.push_back({first.c, new_count});
 
-                // for the next iteration of the loop
-                len = buffs[i].size();
+                // get new last for the next iteration of the loop
                 last = buffs[i][len - 1];
-                temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-                ret.insert(std::end(ret), std::begin(temp), std::end(temp));
+                ret.insert(std::end(ret), std::begin(cur), std::end(cur));
             } else {
-                // for next iteration of the loop
-                len = buffs[i].size();
-                last = {first.c, new_count};
-                temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+                /// rle is end
+                // append to ret
                 if (i == NUM_THREADS - 1) {
                     ret.push_back({first.c, new_count});
                 }
+
+                // save new count in last for next iteration of the loop
+                last = {first.c, new_count};
             }
+
+            // for next iteration of the loop
+            len = buffs[i].size();
+            cur = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
         } else {
             // append to ret
             ret.push_back(last);
@@ -115,13 +119,13 @@ static buff_t merge() {
             // for the next iteration of the loop
             len = buffs[i].size();
             last = buffs[i][len - 1];
-            temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-            ret.insert(std::end(ret), std::begin(temp), std::end(temp));
+            cur = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+            ret.insert(std::end(ret), std::begin(cur), std::end(cur));
         }
     }
 
     // this is good
-    if (!temp.empty()) {
+    if (!cur.empty()) {
         ret.push_back(last);
     }
 
@@ -189,8 +193,9 @@ int main(int argc, char *argv[]) {
     buff_t merged = merge();
 
     for (rle_t rle : merged) {
-        std::cout.write(reinterpret_cast<const char *>(&rle.n), sizeof(rle.n));
-        std::cout.write(reinterpret_cast<const char *>(&rle.c), sizeof(rle.c));
+        std::cout << rle.n << static_cast<unsigned char>(rle.c);
+//        std::cout.write(reinterpret_cast<char *>(&rle.n), sizeof(rle.n));
+//        std::cout.write(reinterpret_cast<char *>(&rle.c), sizeof(rle.c));
     }
     std::cout << std::flush;
 
