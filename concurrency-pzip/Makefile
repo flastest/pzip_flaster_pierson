@@ -31,6 +31,9 @@ valgrind: all
 clean:
 	rm -fv *.o $(EXE) $(SRC)
 
+compile:
+	$(CXX) -o $(EXE) $(SRC).cc $(CXX_NODB)
+
 test:
 	$(CXX) -o $(EXE) $(SRC).cc $(CXX_NODB)
 	./test-wzip.sh

@@ -3,6 +3,6 @@ project(pzip_flaster_pierson)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -ggdb3 -Og -DDEBUG -lpthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -ggdb3 -Og -DDEBUG -pthread")
 
 add_executable(pzip pzip.cc)

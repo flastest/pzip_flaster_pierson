@@ -74,60 +74,44 @@ static void zip(const std::byte *buff, size_t len, size_t thread) {
  * @return merged buffer
  */
 static buff_t merge() {
-    size_t len = buffs[0].size();
-    rle_t last = buffs[0][len - 1];
-    auto cur = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
-    auto ret = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    // save last rle of first buff
+    rle_t last = buffs[0].back();
+    // init ret to all of the first buff except its last rle
+    buff_t ret(buffs[0].begin(), buffs[0].end() - 1);
 
     if (NUM_THREADS == 1) {
         return buffs[0];
     }
 
     for (size_t i = 1; i < NUM_THREADS; ++i) {
-        rle_t first = buffs[i][0];
+        rle_t first = buffs[i].front();
 
         // if characters equal, add the counts and merge
         if (last.c == first.c) {
-            uint32_t new_count = last.n + first.n;
+            // add the character counts and append new rle to ret
+            ret.push_back({first.c, last.n + first.n});
 
-            if (!cur.empty()) {
-                /// rle has middle
-                // append to ret
-                ret.push_back({first.c, new_count});
-
-                // get new last for the next iteration of the loop
-                last = buffs[i][len - 1];
-                ret.insert(std::end(ret), std::begin(cur), std::end(cur));
-            } else {
-                /// rle is end
-                // append to ret
-                if (i == NUM_THREADS - 1) {
-                    ret.push_back({first.c, new_count});
-                }
-
-                // save new count in last for next iteration of the loop
-                last = {first.c, new_count};
+            // append rest of current buff except its first rle which was merged
+            // and last rle which might be merged in the next loop
+            if (buffs[i].size() > 1) {
+                ret.insert(std::end(ret), buffs[i].begin() + 1,
+                           buffs[i].end() - 1);
             }
-
-            // for next iteration of the loop
-            len = buffs[i].size();
-            cur = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
         } else {
-            // append to ret
+            // append to last ret because it wasn't merged
             ret.push_back(last);
 
-            // for the next iteration of the loop
-            len = buffs[i].size();
-            last = buffs[i][len - 1];
-            cur = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-            ret.insert(std::end(ret), std::begin(cur), std::end(cur));
+            // append rest of current buff except and last rle
+            // which might be merged in the next loop
+            ret.insert(std::end(ret), buffs[i].begin(), buffs[i].end() - 1);
         }
+        // save last for the next iteration of the loop
+        last = buffs[i].back();
     }
 
-    // this is good
-    if (!cur.empty()) {
-        ret.push_back(last);
-    }
+    // push back last rle because
+    // nothing follows it to merge it with
+    ret.push_back(last);
 
     return ret;
 }
@@ -193,9 +177,9 @@ int main(int argc, char *argv[]) {
     buff_t merged = merge();
 
     for (rle_t rle : merged) {
-        std::cout << rle.n << static_cast<unsigned char>(rle.c);
-//        std::cout.write(reinterpret_cast<char *>(&rle.n), sizeof(rle.n));
-//        std::cout.write(reinterpret_cast<char *>(&rle.c), sizeof(rle.c));
+        // std::cout << rle.n << static_cast<unsigned char>(rle.c);
+        std::cout.write(reinterpret_cast<char *>(&rle.n), sizeof(rle.n));
+        std::cout.write(reinterpret_cast<char *>(&rle.c), sizeof(rle.c));
     }
     std::cout << std::flush;
 
