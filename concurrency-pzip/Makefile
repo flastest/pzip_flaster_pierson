@@ -44,10 +44,10 @@ grind:
 	valgrind -s --track-origins=yes --leak-check=full --show-leak-kinds=all ./$(EXE) $(TESTS)
 
 tidy:
-	clang-tidy $(SRC).cc
+	clang-tidy -extra-arg=$(CXX_STD) $(SRC).cc
 
 tidy-fix:
-	clang-tidy --fix $(SRC).cc
+	clang-tidy -extra-arg=$(CXX_STD) --fix $(SRC).cc
 
 format:
 	clang-format -style="{BasedOnStyle: google, IndentWidth: 4}" -i --verbose $(SRC).cc
