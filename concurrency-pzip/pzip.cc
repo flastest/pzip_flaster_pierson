@@ -14,7 +14,7 @@
 #include <thread>    // for peethreads
 #include <vector>    // for something, can't put my finger on it tho
 
-#define NUM_THREADS 1ul
+#define NUM_THREADS 8ul
 
 /// character count
 using rle_t = struct rle {
@@ -59,7 +59,6 @@ static size_t file_size(FILE *stream) {
  * @param buff character buffer to compress
  * @param len size of data
  * @param thread index of buffer for thread in thread_buffer
- * @return nullptr
  */
 static void zip(const std::byte *buff, size_t len, size_t thread) {
     rle_t last;
@@ -77,68 +76,50 @@ static void zip(const std::byte *buff, size_t len, size_t thread) {
  */
 static buff_t merge() {
     size_t len = buffs[0].size();
-    buff_t prev_num(&(buffs[0][len - 5]), &(buffs[0][len - 1]));
-    std::byte prev_char = buffs[0].at(len - 1);
-    buff_t cur_str = buff_t(&(buffs[0][0]), &(buffs[0][len - 5]));
+    rle_t prev = buffs[0][len - 1];
+    auto c_buff = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    auto ret = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
 
-    auto ret = buff_t(&(buffs[0][0]), &(buffs[0][len - 5]));
+    for (size_t i = 1; i < NUM_THREADS; ++i) {
+        rle_t first = buffs[i][0];
 
-    for (int i = 1; i < NUM_THREADS; ++i) {
-        buff_t beg_of_str_num(&(buffs[i][0]), &(buffs[i][4]));
-        std::byte beg_of_str_char = buffs[i][4];
+        // if equal, add the numbers and merge
+        if (prev.c == first.c) {
+            uint32_t new_count = prev.n + first.n;
 
-        // if the things are equal, add the numbers and merge the 2 things
-        if (prev_char == beg_of_str_char) {
-            auto int_prev_num = *reinterpret_cast<uint32_t *>(&prev_num[0]);
-            auto int_beg_num = *reinterpret_cast<uint32_t *>(&beg_of_str_num[0]);
-            uint32_t new_count = int_beg_num + int_prev_num;
-            // convert new number to byte array
-            auto *new_count_ptr = reinterpret_cast<std::byte *>(&new_count);
+            if (!c_buff.empty()) {
+                // append to ret
+                ret.push_back({first.c, new_count});
 
-            if (!cur_str.empty()) {
-                ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 4);
-                ret.push_back(beg_of_str_char);
-
-                // getting things ready for the next iteration of the loop
+                // for the next iteration of the loop
                 len = buffs[i].size();
-                cur_str = buff_t(&(buffs[i][0]), &(buffs[i][len - 5]));
-
-                prev_num = buff_t(&(buffs[i][len - 5]), &(buffs[i][len - 1]));
-                prev_char = buffs[i].at(len - 1);
-                ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str));
-            } else {  // prepping for next iteration of the loop
+                prev = buffs[i][len - 1];
+                c_buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+                ret.insert(std::end(ret), std::begin(c_buff), std::end(c_buff));
+            } else {
+                // for next iteration of the loop
                 len = buffs[i].size();
-                cur_str = buff_t(&(buffs[i][0]), &(buffs[i][len - 5]));
-
-                prev_num = buff_t(new_count_ptr, new_count_ptr + 4);
-
-                if (i == NUM_THREADS - 1) {
-                    ret.insert(std::end(ret), new_count_ptr, new_count_ptr + 4);
-                    ret.push_back(beg_of_str_char);
-                }
+                prev = {first.c, new_count};
+                c_buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+                if (i == NUM_THREADS - 1) ret.push_back({first.c, new_count});
             }
-        } else {  // just append something to ret
+        } else {
+            // append to ret
+            ret.push_back(prev);
 
-            ret.insert(std::end(ret), std::begin(prev_num), std::end(prev_num));
-            ret.push_back(prev_char);
-
-            // setting up cur_str for the next iteration of the loop
+            // for the next iteration of the loop
             len = buffs[i].size();
-            cur_str = buff_t(&(buffs[i][0]), &(buffs[i][len - 5]));
-
-            prev_num = buff_t(&(buffs[i][len - 5]), &(buffs[i][len - 1]));
-            prev_char = buffs[i].at(len - 1);
-
-
-            ret.insert(std::end(ret), std::begin(cur_str), std::end(cur_str));
-
+            prev = buffs[i][len - 1];
+            c_buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+            ret.insert(std::end(ret), std::begin(c_buff), std::end(c_buff));
         }
     }
+
     // this is good
-    if (!cur_str.empty()) {
-        ret.insert(std::end(ret), std::begin(prev_num), std::end(prev_num));
-        ret.push_back(prev_char);
+    if (!c_buff.empty()) {
+        ret.push_back(prev);
     }
+
     return ret;
 }
 
@@ -154,16 +135,16 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    size_t buff_size = 0;
+    size_t buff_len = 0;
     for (int i = 1; i < argc; ++i) {
         // For each file get size
         FILE *stream = open_file(argv[i]);
-        buff_size += file_size(stream);
+        buff_len += file_size(stream);
         fclose(stream);
     }
 
     // Make a buffer of the sum-size
-    auto *buffer = static_cast<std::byte *>(malloc(buff_size));
+    auto *buffer = static_cast<std::byte *>(malloc(buff_len));
 
     size_t buff_index = 0;
     for (int i = 1; i < argc; ++i) {
@@ -176,24 +157,22 @@ int main(int argc, char *argv[]) {
         fclose(stream);
     }
 
-    size_t rle_size = buff_size / NUM_THREADS;
+    size_t rle_len = buff_len / NUM_THREADS;
 
     std::vector<std::thread> threads;
 
-    std::byte *buffer_ptr = buffer;
+    std::byte *buff_p = buffer;
 
     // divvy up the work between all the threads
     for (size_t thread = 0; thread < NUM_THREADS; ++thread) {
         if (thread == NUM_THREADS - 1) {
             threads.emplace_back(std::thread([=]() {
-                zip(buffer_ptr, (buff_size - (NUM_THREADS - 1) * rle_size), thread);
+                zip(buff_p, (buff_len - (NUM_THREADS - 1) * rle_len), thread);
             }));
         } else {
-            threads.emplace_back(std::thread([=]() {
-                zip(buffer_ptr, rle_size, thread);
-            }));
-
-            buffer_ptr += rle_size;
+            threads.emplace_back(
+                    std::thread([=]() { zip(buff_p, rle_len, thread); }));
+            buff_p += rle_len;
         }
     }
 
@@ -205,7 +184,7 @@ int main(int argc, char *argv[]) {
     buff_t merged = merge();
 
     for (rle_t rle : merged) {
-        std::cout.write(reinterpret_cast<const char *>(reinterpret_cast<unsigned char *>(&rle.n)), sizeof(rle.n));
+        std::cout.write(reinterpret_cast<const char *>(&rle.n), sizeof(rle.n));
         std::cout.write(reinterpret_cast<const char *>(&rle.c), sizeof(rle.c));
     }
     std::cout << std::flush;
