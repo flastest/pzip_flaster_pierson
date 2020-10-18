@@ -77,7 +77,7 @@ static buff_t merge() {
     size_t len = buffs[0].size();
     rle_t last = buffs[0][len - 1];
     auto temp = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
-    auto buff = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    auto ret = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
 
     if (NUM_THREADS == 1) {
         return buffs[0];
@@ -92,40 +92,40 @@ static buff_t merge() {
 
             if (!temp.empty()) {
                 // append to ret
-                buff.push_back({first.c, new_count});
+                ret.push_back({first.c, new_count});
 
                 // for the next iteration of the loop
                 len = buffs[i].size();
                 last = buffs[i][len - 1];
                 temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-                buff.insert(std::end(buff), std::begin(temp), std::end(temp));
+                ret.insert(std::end(ret), std::begin(temp), std::end(temp));
             } else {
                 // for next iteration of the loop
                 len = buffs[i].size();
                 last = {first.c, new_count};
                 temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
                 if (i == NUM_THREADS - 1) {
-                    buff.push_back({first.c, new_count});
+                    ret.push_back({first.c, new_count});
                 }
             }
         } else {
             // append to ret
-            buff.push_back(last);
+            ret.push_back(last);
 
             // for the next iteration of the loop
             len = buffs[i].size();
             last = buffs[i][len - 1];
             temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-            buff.insert(std::end(buff), std::begin(temp), std::end(temp));
+            ret.insert(std::end(ret), std::begin(temp), std::end(temp));
         }
     }
 
     // this is good
     if (!temp.empty()) {
-        buff.push_back(last);
+        ret.push_back(last);
     }
 
-    return buff;
+    return ret;
 }
 
 /**
