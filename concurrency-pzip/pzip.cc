@@ -88,14 +88,18 @@ static buff_t merge() {
 
         // if characters equal, add the counts and merge
         if (last.c == first.c) {
-            // add the character counts and append new rle to ret
-            ret.push_back({first.c, last.n + first.n});
-
-            // append rest of current buff except its first rle which was merged
-            // and last rle which might be merged in the next loop
             if (buffs[i].size() > 1) {
+                // add the character counts and append new rle to ret
+                ret.push_back({first.c, last.n + first.n});
+
+                // append rest of current buff except its first rle which was
+                // merged and last rle which might be merged in the next loop
+
                 ret.insert(std::end(ret), buffs[i].begin() + 1,
                            buffs[i].end() - 1);
+                last = buffs[i].back();
+            } else {
+                last = {first.c, last.n + first.n};
             }
         } else {
             // append to last ret because it wasn't merged
@@ -104,9 +108,9 @@ static buff_t merge() {
             // append rest of current buff except and last rle
             // which might be merged in the next loop
             ret.insert(std::end(ret), buffs[i].begin(), buffs[i].end() - 1);
+            last = buffs[i].back();
         }
         // save last for the next iteration of the loop
-        last = buffs[i].back();
     }
 
     // push back last rle because
@@ -177,7 +181,6 @@ int main(int argc, char *argv[]) {
     buff_t merged = merge();
 
     for (rle_t rle : merged) {
-        // std::cout << rle.n << static_cast<unsigned char>(rle.c);
         std::cout.write(reinterpret_cast<char *>(&rle.n), sizeof(rle.n));
         std::cout.write(reinterpret_cast<char *>(&rle.c), sizeof(rle.c));
     }
