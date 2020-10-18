@@ -77,7 +77,11 @@ static buff_t merge() {
     size_t len = buffs[0].size();
     rle_t last = buffs[0][len - 1];
     auto temp = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
-    auto merged = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    auto buff = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+
+    if (NUM_THREADS == 1) {
+        return buffs[0];
+    }
 
     for (size_t i = 1; i < NUM_THREADS; ++i) {
         rle_t first = buffs[i][0];
@@ -88,40 +92,40 @@ static buff_t merge() {
 
             if (!temp.empty()) {
                 // append to ret
-                merged.push_back({first.c, new_count});
+                buff.push_back({first.c, new_count});
 
                 // for the next iteration of the loop
                 len = buffs[i].size();
                 last = buffs[i][len - 1];
                 temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-                merged.insert(std::end(merged), std::begin(temp), std::end(temp));
+                buff.insert(std::end(buff), std::begin(temp), std::end(temp));
             } else {
                 // for next iteration of the loop
                 len = buffs[i].size();
                 last = {first.c, new_count};
                 temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
                 if (i == NUM_THREADS - 1) {
-                    merged.push_back({first.c, new_count});
+                    buff.push_back({first.c, new_count});
                 }
             }
         } else {
             // append to ret
-            merged.push_back(last);
+            buff.push_back(last);
 
             // for the next iteration of the loop
             len = buffs[i].size();
             last = buffs[i][len - 1];
             temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-            merged.insert(std::end(merged), std::begin(temp), std::end(temp));
+            buff.insert(std::end(buff), std::begin(temp), std::end(temp));
         }
     }
 
     // this is good
     if (!temp.empty()) {
-        merged.push_back(last);
+        buff.push_back(last);
     }
 
-    return merged;
+    return buff;
 }
 
 /**
