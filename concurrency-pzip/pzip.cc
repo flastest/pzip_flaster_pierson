@@ -2,7 +2,7 @@
  * pzip.cc
  * Ariel Flaster & Talib Pierson
  * 17 October 2020
- * A threaded command-line run-length encoding utility in C++
+ * Pissconsin zip threaded command-line run-length encoding utility in C++
  * The resulting file format is <length> (32-bit unsigned binary)
  * followed by a literal (b-bit character),
  * repeated for as long as necessary.
