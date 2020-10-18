@@ -2,10 +2,9 @@
  * pzip.cc
  * Ariel Flaster & Talib Pierson
  * 17 October 2020
- * Pissconsin zip threaded command-line run-length encoding utility in C++
- * The resulting file format is <length> (32-bit unsigned binary)
- * followed by a literal (b-bit character),
- * repeated for as long as necessary.
+ * Pissconsin zip multi-threaded command-line run-length encoding utility in C++
+ * The resulting file format is repeated
+ * {length: unsigned 4-byte integer, value: 1-byte character}
  */
 #include <cstddef>   // for std::byte
 #include <cstdio>    // for io
@@ -72,55 +71,55 @@ static void zip(const std::byte *buff, size_t len, size_t thread) {
 
 /**
  * Iterates through the thread buffs and merges RLEs e.g. 4a5a becomes 9a.
- * @return ret buffer
+ * @return merged buffer
  */
 static buff_t merge() {
     size_t len = buffs[0].size();
-    rle_t prev = buffs[0][len - 1];
-    auto buff = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
-    auto ret = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    rle_t last = buffs[0][len - 1];
+    auto temp = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
+    auto merged = buff_t(&(buffs[0][0]), &(buffs[0][len - 1]));
 
     for (size_t i = 1; i < NUM_THREADS; ++i) {
         rle_t first = buffs[i][0];
 
         // if equal, add the numbers and merge
-        if (prev.c == first.c) {
-            uint32_t new_count = prev.n + first.n;
+        if (last.c == first.c) {
+            uint32_t new_count = last.n + first.n;
 
-            if (!buff.empty()) {
+            if (!temp.empty()) {
                 // append to ret
-                ret.push_back({first.c, new_count});
+                merged.push_back({first.c, new_count});
 
                 // for the next iteration of the loop
                 len = buffs[i].size();
-                prev = buffs[i][len - 1];
-                buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-                ret.insert(std::end(ret), std::begin(buff), std::end(buff));
+                last = buffs[i][len - 1];
+                temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+                merged.insert(std::end(merged), std::begin(temp), std::end(temp));
             } else {
                 // for next iteration of the loop
                 len = buffs[i].size();
-                prev = {first.c, new_count};
-                buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-                if (i == NUM_THREADS - 1) ret.push_back({first.c, new_count});
+                last = {first.c, new_count};
+                temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+                if (i == NUM_THREADS - 1) merged.push_back({first.c, new_count});
             }
         } else {
             // append to ret
-            ret.push_back(prev);
+            merged.push_back(last);
 
             // for the next iteration of the loop
             len = buffs[i].size();
-            prev = buffs[i][len - 1];
-            buff = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-            ret.insert(std::end(ret), std::begin(buff), std::end(buff));
+            last = buffs[i][len - 1];
+            temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
+            merged.insert(std::end(merged), std::begin(temp), std::end(temp));
         }
     }
 
     // this is good
-    if (!buff.empty()) {
-        ret.push_back(prev);
+    if (!temp.empty()) {
+        merged.push_back(last);
     }
 
-    return ret;
+    return merged;
 }
 
 /**
