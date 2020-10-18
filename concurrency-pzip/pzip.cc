@@ -100,7 +100,9 @@ static buff_t merge() {
                 len = buffs[i].size();
                 last = {first.c, new_count};
                 temp = buff_t(&(buffs[i][0]), &(buffs[i][len - 1]));
-                if (i == NUM_THREADS - 1) merged.push_back({first.c, new_count});
+                if (i == NUM_THREADS - 1) {
+                    merged.push_back({first.c, new_count});
+                }
             }
         } else {
             // append to ret
